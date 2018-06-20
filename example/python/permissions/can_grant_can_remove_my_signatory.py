@@ -12,8 +12,7 @@ bob = commons.user('bob@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_grant_can_remove_my_signatory')
+    test_permissions = iroha.RolePermissionSet([iroha.Role_kRemoveMySignatory])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \
@@ -34,7 +33,7 @@ def grant_can_remove_my_signatory_tx():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(alice['id']) \
-        .grantPermission(bob['id'], 'can_remove_my_signatory') \
+        .grantPermission(bob['id'], iroha.Grantable_kRemoveMySignatory) \
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()

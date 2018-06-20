@@ -12,9 +12,9 @@ bob = commons.user('bob@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_grant_can_set_my_account_detail')
-    test_permissions.append('can_set_detail')
+    test_permissions = iroha.RolePermissionSet([
+        iroha.Role_kSetMyAccountDetail,
+    ])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \
@@ -35,7 +35,7 @@ def grant_permission():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(alice['id']) \
-        .grantPermission(bob['id'], 'can_set_my_account_detail') \
+        .grantPermission(bob['id'], iroha.Grantable_kSetMyAccountDetail) \
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()

@@ -12,11 +12,10 @@ bob = commons.user('bob@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_append_role')
-    test_permissions.append('can_add_peer')
-    second_role = iroha.StringVector()
-    second_role.append('can_add_peer')
+    test_permissions = iroha.RolePermissionSet(
+        [iroha.Role_kAppendRole, iroha.Role_kAddPeer]
+    )
+    second_role = iroha.RolePermissionSet([iroha.Role_kAddPeer])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \

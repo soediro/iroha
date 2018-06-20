@@ -10,8 +10,7 @@ admin = commons.user('admin@first')
 alice = commons.user('alice@second')
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_get_all_accounts')
+    test_permissions = iroha.RolePermissionSet([iroha.Role_kGetAllAccounts])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \

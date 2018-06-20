@@ -10,11 +10,10 @@ admin = commons.user('admin@first')
 alice = commons.user('alice@second')
 
 admin_tx1_hash = None
-admin_tx2_hash_hex = None
+admin_tx2_hash_blob = None
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_get_all_txs')
+    test_permissions = iroha.RolePermissionSet([iroha.Role_kGetAllTxs])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \
@@ -43,13 +42,13 @@ def admin_action_1_tx():
 
 
 def admin_action_2_tx():
-    global admin_tx2_hash_hex
+    global admin_tx2_hash_blob
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \
         .setAccountDetail(admin['id'], 'hyperledger', 'iroha') \
         .build()
-    admin_tx2_hash_hex = tx.hash().hex()
+    admin_tx2_hash_blob = tx.hash().blob()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(admin['key']).finish()
 
@@ -57,7 +56,7 @@ def admin_action_2_tx():
 def transactions_query():
     hashes = iroha.HashVector()
     hashes.append(admin_tx1_hash)
-    hashes.append(iroha.Hash(admin_tx2_hash_hex))
+    hashes.append(iroha.Hash(iroha.Blob(admin_tx2_hash_blob)))
     tx = iroha.ModelQueryBuilder() \
         .createdTime(commons.now()) \
         .queryCounter(1) \

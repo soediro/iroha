@@ -11,9 +11,7 @@ alice = commons.user('alice@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_set_detail')
-
+    test_permissions = iroha.RolePermissionSet([iroha.Role_kSetDetail])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \

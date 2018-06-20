@@ -11,8 +11,7 @@ alice = commons.user('alice@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_set_quorum')
+    test_permissions = iroha.RolePermissionSet([iroha.Role_kSetQuorum])
     extra_key = iroha.ModelCrypto().generateKeypair()
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \

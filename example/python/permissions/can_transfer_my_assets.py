@@ -12,10 +12,11 @@ bob = commons.user('bob@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_grant_can_transfer_my_assets')
-    test_permissions.append('can_receive')
-    test_permissions.append('can_transfer')
+    test_permissions = iroha.RolePermissionSet([
+        iroha.Role_kTransferMyAssets,
+        iroha.Role_kReceive,
+        iroha.Role_kTransfer
+    ])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \
@@ -39,7 +40,7 @@ def grant_permission_tx():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(alice['id']) \
-        .grantPermission(bob['id'], 'can_transfer_my_assets') \
+        .grantPermission(bob['id'], iroha.Grantable_kTransferMyAssets) \
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()

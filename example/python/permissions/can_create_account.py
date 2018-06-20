@@ -12,8 +12,9 @@ bob = commons.user('bob@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_create_account')
+    test_permissions = iroha.RolePermissionSet(
+        [iroha.Role_kCreateAccount]
+    )
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \

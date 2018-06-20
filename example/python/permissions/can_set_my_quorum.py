@@ -12,9 +12,10 @@ bob = commons.user('bob@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_grant_can_set_my_quorum')
-    test_permissions.append('can_add_signatory')
+    test_permissions = iroha.RolePermissionSet([
+        iroha.Role_kSetMyQuorum,
+        iroha.Role_kAddSignatory
+    ])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \
@@ -36,7 +37,7 @@ def grant_can_set_my_quorum_tx():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(alice['id']) \
-        .grantPermission(bob['id'], 'can_set_my_quorum') \
+        .grantPermission(bob['id'], iroha.Grantable_kSetMyQuorum) \
         .addSignatory(alice['id'], extra_key.publicKey()) \
         .build()
     return iroha.ModelProtoTransaction(tx) \

@@ -11,8 +11,7 @@ alice = commons.user('alice@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_remove_signatory')
+    test_permissions = iroha.RolePermissionSet([iroha.Role_kRemoveSignatory])
     extra_key = iroha.ModelCrypto().generateKeypair()
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \

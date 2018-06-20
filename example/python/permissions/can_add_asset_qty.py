@@ -11,8 +11,7 @@ alice = commons.user('alice@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_add_asset_qty')
+    test_permissions = iroha.RolePermissionSet([iroha.Role_kAddAssetQty])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \

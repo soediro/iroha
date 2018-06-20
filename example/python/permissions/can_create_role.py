@@ -11,9 +11,9 @@ alice = commons.user('alice@test')
 
 
 def genesis_tx():
-    test_permissions = iroha.StringVector()
-    test_permissions.append('can_create_role')
-    test_permissions.append('can_create_domain')
+    test_permissions = iroha.RolePermissionSet(
+        [iroha.Role_kCreateRole, iroha.Role_kCreateDomain]
+    )
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(admin['id']) \
@@ -31,8 +31,7 @@ def genesis_tx():
 def create_role_tx():
     # You can pick only those permissions that
     # already belong to account of transaction creator.
-    role_permissions = iroha.StringVector()
-    role_permissions.append('can_create_domain')
+    role_permissions = iroha.RolePermissionSet([iroha.Role_kCreateDomain])
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(alice['id']) \
