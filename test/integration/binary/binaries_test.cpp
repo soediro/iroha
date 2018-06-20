@@ -9,6 +9,8 @@ using BinaryTestTypes = ::testing::Types<PythonLauncher, JavaLauncher>;
 
 TYPED_TEST_CASE(BinaryTestFixture, BinaryTestTypes);
 
+// -------------------------- Transactions --------------------------
+
 TYPED_TEST(BinaryTestFixture, can_create_account) {
   this->doStupidTest(2);
 }

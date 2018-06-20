@@ -78,9 +78,7 @@ namespace binary_test {
 
   std::string JavaLauncher::launchCommand(const std::string &example) {
     return "";
-    //    std::stringstream s;
-    //    s << "bash -c \"echo ${ROOT_DIR}\"";
-    //    return s.str();
+    // tbd, igor-egorov, 2018-06-20, IR-1389
   }
 
 }  // namespace binary_test

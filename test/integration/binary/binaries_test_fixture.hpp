@@ -71,8 +71,8 @@ namespace query_validation {
 
   template <>
   inline void _validateQueries<internal::Void>(QueryIterator it,
-                                     QueryIterator end,
-                                     IntegrationTestFramework &itf){};
+                                               QueryIterator end,
+                                               IntegrationTestFramework &itf){};
 
   template <typename... Responses>
   inline void validateQueries(QueryIterator it,
