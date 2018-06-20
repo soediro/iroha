@@ -6,10 +6,13 @@
 #ifndef IROHA_ON_DEMAND_OS_TRANSPORT_HPP
 #define IROHA_ON_DEMAND_OS_TRANSPORT_HPP
 
-#include <boost/optional.hpp>
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
+
+#include <boost/functional/hash.hpp>
+#include <boost/optional.hpp>
 
 namespace shared_model {
   namespace interface {
@@ -23,9 +26,26 @@ namespace iroha {
     namespace transport {
 
       /**
-       * Type of round indexing
+       * Type of round indexing by blocks
        */
-      using RoundType = uint64_t;
+      using BlockRoundType = uint64_t;
+
+      /**
+       * Type of round indexing by reject before new block commit
+       */
+      using RejectRoundType = uint32_t;
+
+      /**
+       * Type of proposal round
+       */
+      using RoundType = std::pair<BlockRoundType, RejectRoundType>;
+
+      class RoundTypeHasher {
+       public:
+        std::size_t operator()(const RoundType &val) const {
+          return boost::hash_value(val);
+        }
+      };
 
       /**
        * Notification interface of on demand ordering service.
