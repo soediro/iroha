@@ -1,0 +1,48 @@
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+import iroha
+import commons
+
+admin = commons.user('admin@first')
+alice = commons.user('alice@second')
+
+def genesis_tx():
+    test_permissions = iroha.StringVector()
+    test_permissions.append('can_get_all_acc_ast_txs')
+    test_permissions.append('can_receive')
+    test_permissions.append('can_transfer')
+    tx = iroha.ModelTransactionBuilder() \
+        .createdTime(commons.now()) \
+        .creatorAccountId(admin['id']) \
+        .addPeer('0.0.0.0:50541', admin['key'].publicKey()) \
+        .createRole('admin_role', commons.all_permissions()) \
+        .createRole('test_role', test_permissions) \
+        .createDomain('first', 'admin_role') \
+        .createDomain('second', 'test_role') \
+        .createAccount('admin', 'first', admin['key'].publicKey()) \
+        .createAccount('alice', 'second', alice['key'].publicKey()) \
+        .createAsset('coin', 'first', 2) \
+        .addAssetQuantity(admin['id'], 'coin#first', '300.00') \
+        .transferAsset(admin['id'], alice['id'], 'coin#first', 'top up', '200.00') \
+        .build()
+    return iroha.ModelProtoTransaction(tx) \
+        .signAndAddSignature(admin['key']).finish()
+
+
+def account_asset_transactions_query():
+    tx = iroha.ModelQueryBuilder() \
+        .createdTime(commons.now()) \
+        .queryCounter(1) \
+        .creatorAccountId(alice['id']) \
+        .getAccountAssetTransactions(admin['id'], 'coin#first') \
+        .build()
+    return iroha.ModelProtoQuery(tx) \
+        .signAndAddSignature(alice['key']).finish()
+
+
+print(admin['key'].privateKey().hex())
+print(genesis_tx().hex())
+print(account_asset_transactions_query().hex())
