@@ -21,6 +21,7 @@
 #include "interfaces/base/signable.hpp"
 #include "interfaces/commands/command.hpp"
 #include "interfaces/common_objects/types.hpp"
+#include "iroha_internal/batch_meta.hpp"
 #include "utils/string_builder.hpp"
 
 namespace shared_model {
@@ -55,6 +56,11 @@ namespace shared_model {
        */
       virtual CommandsType commands() const = 0;
 
+      /*
+       * @return Batch Meta if exists
+       */
+      virtual boost::optional<std::shared_ptr<BatchMeta>> batch_meta() const = 0;
+
       std::string toString() const override {
         return detail::PrettyStringBuilder()
             .init("Transaction")
@@ -65,6 +71,7 @@ namespace shared_model {
             .append("commands")
             .appendAll(commands(),
                        [](auto &command) { return command.toString(); })
+            .append(batch_meta()->get()->toString())
             .append("signatures")
             .appendAll(signatures(), [](auto &sig) { return sig.toString(); })
             .finalize();

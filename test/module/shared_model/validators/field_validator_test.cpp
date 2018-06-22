@@ -667,6 +667,10 @@ class FieldValidatorTest : public ValidatorsTest {
       makeValidator("description",
                     &FieldValidator::validateDescription,
                     &FieldValidatorTest::description,
+                    description_test_cases),
+      makeValidator("batch_meta",
+                    &FieldValidator::validateDescription,
+                    &FieldValidatorTest::description,
                     description_test_cases)};
 };
 

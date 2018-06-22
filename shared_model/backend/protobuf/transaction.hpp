@@ -24,6 +24,7 @@
 
 #include "backend/protobuf/commands/proto_command.hpp"
 #include "backend/protobuf/common_objects/signature.hpp"
+#include "batch_meta.hpp"
 #include "block.pb.h"
 #include "utils/lazy_initializer.hpp"
 
@@ -88,6 +89,15 @@ namespace shared_model {
 
       Transaction::QuorumType quorum() const override {
         return payload_.quorum();
+      }
+      boost::optional<std::shared_ptr<interface::BatchMeta>> batch_meta()
+          const override {
+        if (payload_.has_batch_meta()) {
+          std::shared_ptr<interface::BatchMeta> b =
+              std::make_shared<proto::BatchMeta>(payload_.batch_meta());
+          return b;
+        }
+        return boost::none;
       }
 
      private:
