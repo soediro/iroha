@@ -20,7 +20,6 @@ def genesis_tx():
         .createDomain('test', 'test_role') \
         .createAccount('admin', 'test', admin['key'].publicKey()) \
         .createAccount('alice', 'test', alice['key'].publicKey()) \
-        .createAsset('coin', 'test', 2) \
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(admin['key']).finish()
