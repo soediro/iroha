@@ -19,6 +19,7 @@
 #include <memory>
 #include <unordered_set>
 
+#include <block.pb.h>
 #include <gmock/gmock-matchers.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/dynamic_message.h>
@@ -562,6 +563,18 @@ class FieldValidatorTest : public ValidatorsTest {
     return all_cases;
   }();
 
+  std::vector<FieldTestCase> batch_meta_test_cases = [&]() {
+    iroha::protocol::Transaction::Payload::BatchMeta meta;
+    meta.set_batch_type(
+        iroha::protocol::Transaction::Payload::BatchMeta::BatchType::
+            Transaction_Payload_BatchMeta_BatchType_ATOMIC);
+    meta.add_tx_hashes("tst")
+    std::vector<FieldTestCase> all_cases;
+    all_cases.push_back(makeTestCase(
+        "batch meta test", &FieldValidatorTest::batch_meta, meta, true, ""));
+    return all_cases;
+  }();
+
   std::vector<FieldTestCase> precision_test_cases{
       makeValidCase(&FieldValidatorTest::precision, 0),
       makeValidCase(&FieldValidatorTest::precision, 1),
@@ -668,10 +681,12 @@ class FieldValidatorTest : public ValidatorsTest {
                     &FieldValidator::validateDescription,
                     &FieldValidatorTest::description,
                     description_test_cases),
-      makeValidator("batch_meta",
-                    &FieldValidator::validateDescription,
-                    &FieldValidatorTest::description,
-                    description_test_cases)};
+      makeTransformValidator(
+          "batch_meta",
+          &FieldValidator::validateBatchMeta,
+          &FieldValidatorTest::batch_meta,
+          [](auto &&x) { return shared_model::proto::BatchMeta(x); },
+          batch_meta_test_cases)};
 };
 
 /**

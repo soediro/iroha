@@ -59,6 +59,10 @@ namespace shared_model {
         return *blobTypePayload_;
       }
 
+      const interface::types::BlobType &reduced_payload() const override {
+        return *blobTypeReducedPayload_;
+      }
+
       interface::types::SignatureRangeType signatures() const override {
         return *signatures_;
       }
@@ -107,6 +111,17 @@ namespace shared_model {
 
       const iroha::protocol::Transaction::Payload &payload_{proto_->payload()};
 
+      const Lazy<iroha::protocol::Transaction::Payload> reduced_payload_{
+          [this] {
+            if (not payload_.has_batch_meta())
+              return payload_;
+            iroha::protocol::Transaction::Payload copy = payload_;
+            copy.clear_batch_meta();
+            copy.set_null_value(
+                iroha::protocol::NullValue::NULL_VALUE);
+            return copy;
+          }};
+
       const Lazy<std::vector<proto::Command>> commands_{[this] {
         return std::vector<proto::Command>(payload_.commands().begin(),
                                            payload_.commands().end());
@@ -117,6 +132,9 @@ namespace shared_model {
 
       const Lazy<interface::types::BlobType> blobTypePayload_{
           [this] { return makeBlob(payload_); }};
+
+      const Lazy<interface::types::BlobType> blobTypeReducedPayload_{
+          [this] { return makeBlob(*reduced_payload_); }};
 
       const Lazy<SignatureSetType<proto::Signature>> signatures_{[this] {
         auto signatures = proto_->signatures()

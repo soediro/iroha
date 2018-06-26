@@ -7,7 +7,9 @@ message Header {
   uint64 created_time = 1;
   repeated Signature signatures = 2;
 }
-
+enum NullValue {
+    NULL_VALUE = 0;
+}
 message Transaction {
   message Payload {
     message BatchMeta {
@@ -23,7 +25,8 @@ message Transaction {
     uint64 created_time = 3;
     uint32 quorum = 4;
     oneof optional_batch_meta {
-      BatchMeta batch_meta = 5;
+      NullValue null_value = 5;
+      BatchMeta batch_meta = 8;
     }
   }
 

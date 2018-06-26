@@ -151,6 +151,10 @@ namespace shared_model {
           ReasonsGroupType &reason,
           const interface::types::DescriptionType &description) const;
 
+      void validateBatchMeta(
+          ReasonsGroupType &reason,
+          const interface::BatchMeta &description) const;
+
       void validateHeight(ReasonsGroupType &reason,
                           const interface::types::HeightType &height) const;
 
