@@ -47,7 +47,7 @@ void OnDemandOrderingServiceImpl::onTransactions(
       });
 }
 
-boost::optional<std::shared_ptr<shared_model::interface::Proposal>>
+boost::optional<OnDemandOrderingServiceImpl::ProposalType>
 OnDemandOrderingServiceImpl::onRequestProposal(transport::RoundType round) {
   // read lock
   boost::shared_lock<boost::shared_mutex> guard(lock_);

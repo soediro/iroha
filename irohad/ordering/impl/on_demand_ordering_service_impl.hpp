@@ -8,11 +8,11 @@
 
 #include "ordering/on_demand_ordering_service.hpp"
 
-#include <tbb/concurrent_queue.h>
-#include <boost/thread.hpp>
-
 #include <queue>
 #include <unordered_map>
+
+#include <tbb/concurrent_queue.h>
+#include <boost/thread.hpp>
 
 namespace iroha {
   namespace ordering {
@@ -23,8 +23,7 @@ namespace iroha {
           size_t number_of_proposals = 3,
           const transport::RoundType &initial_round = std::make_pair(2, 1));
 
-      // --------------------- | OnDemandOrderingService |
-      // ---------------------
+      // --------------------- | OnDemandOrderingService |_---------------------
 
       void onCollaborationOutcome(RoundOutput outcome,
                                   transport::RoundType round) override;
@@ -35,8 +34,8 @@ namespace iroha {
                           std::shared_ptr<shared_model::interface::Transaction>>
                               &transactions) override;
 
-      boost::optional<std::shared_ptr<shared_model::interface::Proposal>>
-      onRequestProposal(transport::RoundType round) override;
+      boost::optional<ProposalType> onRequestProposal(
+          transport::RoundType round) override;
 
      private:
       /**
@@ -44,11 +43,6 @@ namespace iroha {
        */
       using TransactionType =
           std::shared_ptr<shared_model::interface::Transaction>;
-
-      /**
-       * Type of stored proposals
-       */
-      using ProposalType = std::shared_ptr<shared_model::interface::Proposal>;
 
       /**
        * Packs new proposal and creates new round

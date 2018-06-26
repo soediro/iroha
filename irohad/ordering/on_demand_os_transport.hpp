@@ -56,6 +56,11 @@ namespace iroha {
       class OdOsNotification {
        public:
         /**
+         * Type of stored proposals
+         */
+        using ProposalType = std::shared_ptr<shared_model::interface::Proposal>;
+
+        /**
          * Callback on receiving transactions
          * @param transactions - vector of passed transactions
          */
@@ -70,9 +75,8 @@ namespace iroha {
          * Calculated as block_height + 1
          * @return proposal for requested round
          */
-        virtual boost::optional<
-            std::shared_ptr<shared_model::interface::Proposal>>
-        onRequestProposal(RoundType round) = 0;
+        virtual boost::optional<ProposalType> onRequestProposal(
+            RoundType round) = 0;
 
         virtual ~OdOsNotification() = default;
       };
