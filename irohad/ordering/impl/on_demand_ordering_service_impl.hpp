@@ -11,7 +11,6 @@
 #include <tbb/concurrent_queue.h>
 #include <boost/thread.hpp>
 
-#include <mutex>
 #include <queue>
 #include <unordered_map>
 
@@ -19,16 +18,22 @@ namespace iroha {
   namespace ordering {
     class OnDemandOrderingServiceImpl : public OnDemandOrderingService {
      public:
-      // --------------------- | OnDemandOrderingService | ---------------------
+      OnDemandOrderingServiceImpl(
+          size_t transaction_limit,
+          size_t number_of_proposals = 3,
+          const transport::RoundType &initial_round = std::make_pair(2, 1));
+
+      // --------------------- | OnDemandOrderingService |
+      // ---------------------
 
       void onCollaborationOutcome(RoundOutput outcome,
                                   transport::RoundType round) override;
 
       // ----------------------- | OdOsNotification | --------------------------
 
-      void onTransactions(
-          std::vector<std::shared_ptr<shared_model::interface::Transaction>>
-              transactions) override;
+      void onTransactions(const std::vector<
+                          std::shared_ptr<shared_model::interface::Transaction>>
+                              &transactions) override;
 
       boost::optional<std::shared_ptr<shared_model::interface::Proposal>>
       onRequestProposal(transport::RoundType round) override;
@@ -47,23 +52,36 @@ namespace iroha {
 
       /**
        * Packs new proposal and creates new round
+       * Note: method is not thread-safe
        */
-      void insertLast(RoundOutput outcome,
-                      const transport::RoundType &last_round);
+      void packNextProposal(RoundOutput outcome,
+                            const transport::RoundType &last_round);
 
       /**
-       * Removes last elements
+       * Removes last elements if it is required
        * Method removes the oldest commit or chain of the oldest rejects
+       * Note: method is not thread-safe
        */
-      void erase();
+      void tryErase();
 
       /**
        * @return packed proposal from current round queue
+       * Note: method is not thread-safe
        */
       ProposalType emitProposal();
 
       /**
-       * Queue which holds all round in linear sequential
+       * Max number of transaction in one proposal
+       */
+      size_t transaction_limit_;
+
+      /**
+       * Max number of available proposals in one OS`1234567890'
+       */
+      size_t number_of_proposals_;
+
+      /**
+       * Queue which holds all round in linear order
        */
       std::queue<transport::RoundType> round_queue_;
 
@@ -79,8 +97,7 @@ namespace iroha {
        * Proposal for current round
        */
       std::pair<transport::RoundType, tbb::concurrent_queue<TransactionType>>
-          current_proposal_ = std::make_pair(
-              std::make_pair(2, 1), tbb::concurrent_queue<TransactionType>());
+          current_proposal_;
 
       /**
        * Lock for onCollaborationOutcome critical section

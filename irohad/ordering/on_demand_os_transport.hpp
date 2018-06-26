@@ -40,6 +40,9 @@ namespace iroha {
        */
       using RoundType = std::pair<BlockRoundType, RejectRoundType>;
 
+      /**
+       * Class provides hash function for RoundType
+       */
       class RoundTypeHasher {
        public:
         std::size_t operator()(const RoundType &val) const {
@@ -57,8 +60,9 @@ namespace iroha {
          * @param transactions - vector of passed transactions
          */
         virtual void onTransactions(
-            std::vector<std::shared_ptr<shared_model::interface::Transaction>>
-                transactions) = 0;
+            const std::vector<
+                std::shared_ptr<shared_model::interface::Transaction>>
+                &transactions) = 0;
 
         /**
          * Callback on request about proposal
