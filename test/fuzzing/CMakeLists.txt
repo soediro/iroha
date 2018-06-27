@@ -22,3 +22,13 @@ target_link_libraries(status_fuzzing
   libs_common
   torii_service
   )
+
+add_executable(find_fuzzing find_fuzz.cpp)
+target_link_libraries(find_fuzzing
+  rxcpp
+  gtest
+  gmock
+  ametsuchi
+  libs_common
+  torii_service
+  )
