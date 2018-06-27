@@ -565,10 +565,9 @@ class FieldValidatorTest : public ValidatorsTest {
 
   std::vector<FieldTestCase> batch_meta_test_cases = [&]() {
     iroha::protocol::Transaction::Payload::BatchMeta meta;
-    meta.set_batch_type(
-        iroha::protocol::Transaction::Payload::BatchMeta::BatchType::
-            Transaction_Payload_BatchMeta_BatchType_ATOMIC);
-    meta.add_tx_hashes("tst")
+    meta.set_type(iroha::protocol::Transaction::Payload::BatchMeta::BatchType::
+                      Transaction_Payload_BatchMeta_BatchType_ATOMIC);
+    meta.add_tx_hashes("tst");
     std::vector<FieldTestCase> all_cases;
     all_cases.push_back(makeTestCase(
         "batch meta test", &FieldValidatorTest::batch_meta, meta, true, ""));
@@ -682,7 +681,7 @@ class FieldValidatorTest : public ValidatorsTest {
                     &FieldValidatorTest::description,
                     description_test_cases),
       makeTransformValidator(
-          "batch_meta",
+          "batch",
           &FieldValidator::validateBatchMeta,
           &FieldValidatorTest::batch_meta,
           [](auto &&x) { return shared_model::proto::BatchMeta(x); },
@@ -704,7 +703,7 @@ TEST_F(FieldValidatorTest, CommandFieldsValidation) {
       [] { return iroha::protocol::Command::descriptor(); },
       [&](auto field) {
         // Add new command to transaction
-        auto command = payload->add_commands();
+        auto command = payload->mutable_reduced_payload()->add_commands();
         //  // Set concrete type for new command
         return command->GetReflection()->MutableMessage(command, field);
       },
@@ -722,6 +721,7 @@ TEST_F(FieldValidatorTest, TransactionFieldsValidation) {
   iroha::protocol::Transaction proto_tx;
   proto_tx.add_signatures();  // at least one signature in message
 
+
   // iterate over all fields in transaction
   iterateContainer(
       [] { return iroha::protocol::Transaction::descriptor(); },
@@ -731,7 +731,9 @@ TEST_F(FieldValidatorTest, TransactionFieldsValidation) {
                   &proto_tx, field, 0)
             : proto_tx.GetReflection()->MutableMessage(&proto_tx, field);
       },
-      [this](auto field, auto transaction_field) { this->runTestCases(field); },
+      [this](auto field, auto transaction_field) {
+        this->runTestCases(field);
+      },
       [] {});
 }
 

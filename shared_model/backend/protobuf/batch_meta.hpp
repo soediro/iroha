@@ -43,7 +43,7 @@ namespace shared_model {
               unsigned which = proto_->GetDescriptor()
                                    ->FindFieldByName("batch_type")
                                    ->enum_type()
-                                   ->FindValueByNumber(proto_->batch_type())
+                                   ->FindValueByNumber(proto_->type())
                                    ->index();
               return static_cast<interface::types::BatchType>(which);
             }},

@@ -27,6 +27,7 @@
 #include "interfaces/permissions.hpp"
 #include "primitive.pb.h"
 #include "queries.pb.h"
+#include "block.pb.h"
 
 class ValidatorsTest : public ::testing::Test {
  public:

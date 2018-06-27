@@ -44,7 +44,7 @@ namespace shared_model {
           : Transaction(std::move(o.proto_)) {}
 
       const interface::types::AccountIdType &creatorAccountId() const override {
-        return payload_.creator_account_id();
+        return reduced_payload_.creator_account_id();
       }
 
       Transaction::CommandsType commands() const override {
@@ -88,17 +88,17 @@ namespace shared_model {
       }
 
       interface::types::TimestampType createdTime() const override {
-        return payload_.created_time();
+        return reduced_payload_.created_time();
       }
 
       Transaction::QuorumType quorum() const override {
-        return payload_.quorum();
+        return reduced_payload_.quorum();
       }
       boost::optional<std::shared_ptr<interface::BatchMeta>> batch_meta()
           const override {
-        if (payload_.has_batch_meta()) {
+        if (payload_.has_batch()) {
           std::shared_ptr<interface::BatchMeta> b =
-              std::make_shared<proto::BatchMeta>(payload_.batch_meta());
+              std::make_shared<proto::BatchMeta>(payload_.batch());
           return b;
         }
         return boost::none;
@@ -106,25 +106,17 @@ namespace shared_model {
 
      private:
       // lazy
-      template <typename T>
+      template <typename T> 
       using Lazy = detail::LazyInitializer<T>;
 
       const iroha::protocol::Transaction::Payload &payload_{proto_->payload()};
 
-      const Lazy<iroha::protocol::Transaction::Payload> reduced_payload_{
-          [this] {
-            if (not payload_.has_batch_meta())
-              return payload_;
-            iroha::protocol::Transaction::Payload copy = payload_;
-            copy.clear_batch_meta();
-            copy.set_null_value(
-                iroha::protocol::NullValue::NULL_VALUE);
-            return copy;
-          }};
+      const iroha::protocol::Transaction::Payload::ReducedPayload
+          reduced_payload_{proto_->payload().reduced_payload()};
 
       const Lazy<std::vector<proto::Command>> commands_{[this] {
-        return std::vector<proto::Command>(payload_.commands().begin(),
-                                           payload_.commands().end());
+        return std::vector<proto::Command>(reduced_payload_.commands().begin(),
+                                           reduced_payload_.commands().end());
       }};
 
       const Lazy<interface::types::BlobType> blob_{
@@ -134,7 +126,7 @@ namespace shared_model {
           [this] { return makeBlob(payload_); }};
 
       const Lazy<interface::types::BlobType> blobTypeReducedPayload_{
-          [this] { return makeBlob(*reduced_payload_); }};
+          [this] { return makeBlob(reduced_payload_); }};
 
       const Lazy<SignatureSetType<proto::Signature>> signatures_{[this] {
         auto signatures = proto_->signatures()
