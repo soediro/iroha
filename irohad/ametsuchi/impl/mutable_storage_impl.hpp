@@ -40,8 +40,6 @@ namespace iroha {
      public:
       MutableStorageImpl(
           shared_model::interface::types::HashType top_hash,
-          std::unique_ptr<pqxx::lazyconnection> connection,
-          std::unique_ptr<pqxx::nontransaction> transaction,
           std::unique_ptr<soci::session> sql);
 
       bool apply(
@@ -61,8 +59,6 @@ namespace iroha {
           block_store_;
 
       std::unique_ptr<soci::session> sql_;
-      std::unique_ptr<pqxx::lazyconnection> connection_;
-      std::unique_ptr<pqxx::nontransaction> transaction_;
       std::unique_ptr<WsvQuery> wsv_;
       std::unique_ptr<WsvCommand> executor_;
       std::unique_ptr<BlockIndex> block_index_;

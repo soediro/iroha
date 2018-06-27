@@ -36,19 +36,12 @@ class BlockQueryTest : public AmetsuchiTest {
     auto tmp = FlatFile::create(block_store_path);
     ASSERT_TRUE(tmp);
     file = std::move(*tmp);
-    postgres_connection = std::make_unique<pqxx::lazyconnection>(pgopt_);
-    try {
-      postgres_connection->activate();
-    } catch (const pqxx::broken_connection &e) {
-      FAIL() << "Connection to PostgreSQL broken: " << e.what();
-    }
-    transaction = std::make_unique<pqxx::nontransaction>(
-        *postgres_connection, "Postgres block indexes");
+    sql = std::make_unique<soci::session>(soci::postgresql, pgopt_);
 
-    index = std::make_shared<PostgresBlockIndex>(*transaction);
-    blocks = std::make_shared<PostgresBlockQuery>(*transaction, *file);
+    index = std::make_shared<PostgresBlockIndex>(*sql);
+    blocks = std::make_shared<PostgresBlockQuery>(*sql, *file);
 
-    transaction->exec(init_);
+    *sql << init_;
 
     // First transaction in block1
     auto txn1_1 = TestTransactionBuilder().creatorAccountId(creator1).build();
@@ -91,8 +84,7 @@ class BlockQueryTest : public AmetsuchiTest {
     }
   }
 
-  std::unique_ptr<pqxx::lazyconnection> postgres_connection;
-  std::unique_ptr<pqxx::nontransaction> transaction;
+  std::unique_ptr<soci::session> sql;
   std::vector<shared_model::crypto::Hash> tx_hashes;
   std::shared_ptr<BlockQuery> blocks;
   std::shared_ptr<BlockIndex> index;

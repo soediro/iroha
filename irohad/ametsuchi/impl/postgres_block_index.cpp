@@ -31,18 +31,14 @@
 namespace iroha {
   namespace ametsuchi {
 
-    PostgresBlockIndex::PostgresBlockIndex(pqxx::nontransaction &transaction)
-        : transaction_(transaction),
-          log_(logger::log("PostgresBlockIndex")),
-          execute_{makeExecuteOptional(transaction_, log_)} {}
+    PostgresBlockIndex::PostgresBlockIndex(soci::session &sql)
+        : sql_(sql),
+          log_(logger::log("PostgresBlockIndex")) {}
 
     auto PostgresBlockIndex::indexAccountIdHeight(const std::string &account_id,
                                                   const std::string &height) {
-      return this->execute(
-          "INSERT INTO height_by_account_set(account_id, height) "
-          "VALUES ("
-          + transaction_.quote(account_id) + ", " + transaction_.quote(height)
-          + ");");
+      sql_ << "INSERT INTO height_by_account_set(account_id, height) VALUES (:id, :height)", soci::use(account_id), soci::use(height);
+      return true;
     }
 
     auto PostgresBlockIndex::indexAccountAssets(
@@ -68,18 +64,17 @@ namespace iroha {
                   auto ids = {account_id,
                               command.srcAccountId(),
                               command.destAccountId()};
+                  auto asset_id = command.assetId();
                   // flat map accounts to unindexed keys
                   boost::for_each(ids, [&](const auto &id) {
-                    auto res = execute_(
-                        "INSERT INTO index_by_id_height_asset(id, "
-                        "height, asset_id, "
-                        "index) "
-                        "VALUES ("
-                        + transaction_.quote(id) + ", "
-                        + transaction_.quote(height) + ", "
-                        + transaction_.quote(command.assetId()) + ", "
-                        + transaction_.quote(index) + ");");
-                    status &= res != boost::none;
+                    try {
+                      sql_ << "INSERT INTO index_by_id_height_asset(id, "
+                          "height, asset_id, "
+                          "index) "
+                          "VALUES (:id, :height, :asset_id, :index)", soci::use(id), soci::use(height), soci::use(asset_id), soci::use(index);
+                    } catch (std::exception &e) {
+                      status = false;
+                    }
                   });
                   return status;
                 },
@@ -94,26 +89,19 @@ namespace iroha {
           block.transactions() | boost::adaptors::indexed(0),
           [&](const auto &tx) {
             const auto &creator_id = tx.value().creatorAccountId();
-            const auto &hash = tx.value().hash().blob();
+            const auto &hash = tx.value().hash().hex();
             const auto &index = std::to_string(tx.index());
 
             // tx hash -> block where hash is stored
-            this->execute("INSERT INTO height_by_hash(hash, height) VALUES ("
-                          + transaction_.quote(
-                                pqxx::binarystring(hash.data(), hash.size()))
-                          + ", " + transaction_.quote(height) + ");");
+            sql_ << "INSERT INTO height_by_hash(hash, height) VALUES (:hash, :height)", soci::use(hash), soci::use(height);
 
             this->indexAccountIdHeight(creator_id, height);
 
             // to make index account_id:height -> list of tx indexes
             // (where tx is placed in the block)
-            execute_(
-                "INSERT INTO index_by_creator_height(creator_id, "
+            sql_ << "INSERT INTO index_by_creator_height(creator_id, "
                 "height, index) "
-                "VALUES ("
-                + transaction_.quote(creator_id) + ", "
-                + transaction_.quote(height) + ", " + transaction_.quote(index)
-                + ");");
+                "VALUES (:id, :height, :index)", soci::use(creator_id), soci::use(height), soci::use(index);
 
             this->indexAccountAssets(
                 creator_id, height, index, tx.value().commands());

@@ -37,26 +37,12 @@ namespace iroha {
         ASSERT_TRUE(tmp);
         file = std::move(*tmp);
 
-        postgres_connection = std::make_unique<pqxx::lazyconnection>(pgopt_);
-        try {
-          postgres_connection->activate();
-        } catch (const pqxx::broken_connection &e) {
-          FAIL() << "Connection to PostgreSQL broken: " << e.what();
-        }
-        transaction = std::make_unique<pqxx::nontransaction>(
-            *postgres_connection, "Postgres block indexes");
+        sql = std::make_unique<soci::session>(soci::postgresql, pgopt_);
 
-        auto pool = std::make_shared<soci::connection_pool>(10);
+        index = std::make_shared<PostgresBlockIndex>(*sql);
+        blocks = std::make_shared<PostgresBlockQuery>(*sql, *file);
 
-        for (size_t i = 0; i != 10; i++) {
-          soci::session &session = pool->at(i);
-          session.open(soci::postgresql, pgopt_);
-        }
-
-        index = std::make_shared<PostgresBlockIndex>(*transaction);
-        blocks = std::make_shared<PostgresBlockQuery>(*transaction, *file);
-
-        transaction->exec(init_);
+        *sql << init_;
       }
 
       void insert(const shared_model::proto::Block &block) {
@@ -66,8 +52,7 @@ namespace iroha {
         index->index(block);
       }
 
-      std::unique_ptr<pqxx::lazyconnection> postgres_connection;
-      std::unique_ptr<pqxx::nontransaction> transaction;
+      std::unique_ptr<soci::session> sql;
       std::vector<shared_model::crypto::Hash> tx_hashes;
       std::shared_ptr<BlockQuery> blocks;
       std::shared_ptr<BlockIndex> index;

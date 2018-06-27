@@ -29,16 +29,12 @@ namespace iroha {
   namespace ametsuchi {
     MutableStorageImpl::MutableStorageImpl(
         shared_model::interface::types::HashType top_hash,
-        std::unique_ptr<pqxx::lazyconnection> connection,
-        std::unique_ptr<pqxx::nontransaction> transaction,
         std::unique_ptr<soci::session> sql)
         : sql_(std::move(sql)),
           top_hash_(top_hash),
-          connection_(std::move(connection)),
-          transaction_(std::move(transaction)),
           wsv_(std::make_unique<PostgresWsvQuery>(*sql_)),
           executor_(std::make_unique<PostgresWsvCommand>(*sql_)),
-          block_index_(std::make_unique<PostgresBlockIndex>(*transaction_)),
+          block_index_(std::make_unique<PostgresBlockIndex>(*sql_)),
           committed(false),
           log_(logger::log("MutableStorage")) {
       auto query = std::make_shared<PostgresWsvQuery>(*sql_);

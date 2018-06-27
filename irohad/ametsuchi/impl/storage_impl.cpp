@@ -57,17 +57,6 @@ namespace iroha {
 
     expected::Result<std::unique_ptr<MutableStorage>, std::string>
     StorageImpl::createMutableStorage() {
-      auto postgres_connection = std::make_unique<pqxx::lazyconnection>(
-          postgres_options_.optionsString());
-      try {
-        postgres_connection->activate();
-      } catch (const pqxx::broken_connection &e) {
-        return expected::makeError(
-            (boost::format(kPsqlBroken) % e.what()).str());
-      }
-      auto wsv_transaction =
-          std::make_unique<pqxx::nontransaction>(*postgres_connection, kTmpWsv);
-
       boost::optional<shared_model::interface::types::HashType> top_hash;
 
       getBlockQuery()
@@ -81,8 +70,6 @@ namespace iroha {
       return expected::makeValue<std::unique_ptr<MutableStorage>>(
           std::make_unique<MutableStorageImpl>(
               top_hash.value_or(shared_model::interface::types::HashType("")),
-              std::move(postgres_connection),
-              std::move(wsv_transaction),
               std::move(sql)
           ));
     }
@@ -282,20 +269,10 @@ DROP TABLE IF EXISTS index_by_id_height_asset;
     }
 
     std::shared_ptr<BlockQuery> StorageImpl::getBlockQuery() const {
-      auto postgres_connection = std::make_unique<pqxx::lazyconnection>(
-          postgres_options_.optionsString());
-      try {
-        postgres_connection->activate();
-      } catch (const pqxx::broken_connection &e) {
-        // TODO 29.03.2018 vdrobny IR-1184 Handle this exception
-        throw pqxx::broken_connection(e);
-      }
-      auto wsv_transaction =
-          std::make_unique<pqxx::nontransaction>(*postgres_connection);
+      auto sql = std::make_unique<soci::session>(soci::postgresql, postgres_options_.optionsString());
 
       return std::make_shared<PostgresBlockQuery>(
-          std::move(postgres_connection),
-          std::move(wsv_transaction),
+          std::move(sql),
           *block_store_);
     }
 
@@ -389,7 +366,7 @@ CREATE TABLE IF NOT EXISTS account_has_grantable_permissions (
     PRIMARY KEY (permittee_account_id, account_id, permission)
 );
 CREATE TABLE IF NOT EXISTS height_by_hash (
-    hash bytea,
+    hash varchar,
     height text
 );
 CREATE TABLE IF NOT EXISTS height_by_account_set (

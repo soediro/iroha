@@ -45,16 +45,13 @@ namespace iroha {
 
      protected:
       virtual void clear() {
-//        pqxx::work txn(*connection);
-//        txn.exec(drop_);
-//        txn.commit();
         *sql << drop_;
 
         iroha::remove_dir_contents(block_store_path);
       }
 
       virtual void disconnect() {
-//        connection->disconnect();
+        sql->close();
       }
 
       virtual void connect() {
@@ -66,12 +63,6 @@ namespace iroha {
                    });
 
         sql = std::make_shared<soci::session>(soci::postgresql, pgopt_);
-//        connection = std::make_shared<pqxx::lazyconnection>(pgopt_);
-//        try {
-//          connection->activate();
-//        } catch (const pqxx::broken_connection &e) {
-//          FAIL() << "Connection to PostgreSQL broken: " << e.what();
-//        }
       }
 
       void SetUp() override {
@@ -179,7 +170,7 @@ CREATE TABLE IF NOT EXISTS account_has_grantable_permissions (
     PRIMARY KEY (permittee_account_id, account_id, permission_id)
 );
 CREATE TABLE IF NOT EXISTS height_by_hash (
-    hash text,
+    hash varchar,
     height text
 );
 CREATE TABLE IF NOT EXISTS height_by_account_set (
