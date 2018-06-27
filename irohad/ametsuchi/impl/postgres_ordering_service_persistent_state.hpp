@@ -50,8 +50,7 @@ namespace iroha {
        * @param postgres_transaction postgres transaction object
        */
       explicit PostgresOrderingServicePersistentState(
-          std::unique_ptr<pqxx::lazyconnection> postgres_connection,
-          std::unique_ptr<pqxx::nontransaction> postgres_transaction);
+          std::unique_ptr<soci::session> sql);
 
       /**
        * Initialize storage.
@@ -81,20 +80,9 @@ namespace iroha {
       virtual bool resetState();
 
      private:
-      /**
-       * Pg connection with direct transaction management
-       */
-      std::unique_ptr<pqxx::lazyconnection> postgres_connection_;
-
-      /**
-       * Pg transaction
-       */
-      std::unique_ptr<pqxx::nontransaction> postgres_transaction_;
+      std::unique_ptr<soci::session> sql_;
 
       logger::Logger log_;
-
-      using ExecuteType = decltype(makeExecuteResult(*postgres_transaction_));
-      ExecuteType execute_;
     };
   }  // namespace ametsuchi
 }  // namespace iroha
