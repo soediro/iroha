@@ -12,3 +12,13 @@ target_link_libraries(torii_fuzzing
   libs_common
   torii_service
   )
+
+add_executable(status_fuzzing status_fuzz.cpp)
+target_link_libraries(status_fuzzing
+  rxcpp
+  gtest
+  gmock
+  ametsuchi
+  libs_common
+  torii_service
+  )
