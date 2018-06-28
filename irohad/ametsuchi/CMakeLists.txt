@@ -16,7 +16,6 @@ add_library(ametsuchi
 target_link_libraries(ametsuchi
     logger
     rxcpp
-    pqxx
     libs_common
     command_execution
     query_execution

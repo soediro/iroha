@@ -27,16 +27,16 @@ namespace iroha {
 
     PostgresBlockQuery::PostgresBlockQuery(soci::session &sql,
                                            KeyValueStorage &file_store)
-        : block_store_(file_store),
-          sql_(sql),
+        : sql_(sql),
+          block_store_(file_store),
           log_(logger::log("PostgresBlockIndex")) {}
 
     PostgresBlockQuery::PostgresBlockQuery(
         std::unique_ptr<soci::session> sql_ptr,
         KeyValueStorage &file_store)
         : sql_ptr_(std::move(sql_ptr)),
-          block_store_(file_store),
           sql_(*sql_ptr_),
+          block_store_(file_store),
           log_(logger::log("PostgresBlockIndex")) {}
 
     rxcpp::observable<BlockQuery::wBlock> PostgresBlockQuery::getBlocks(

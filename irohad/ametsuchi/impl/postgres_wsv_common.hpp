@@ -19,8 +19,6 @@
 #define IROHA_POSTGRES_WSV_COMMON_HPP
 
 #include <boost/optional.hpp>
-#include <pqxx/nontransaction>
-#include <pqxx/result>
 
 #define SOCI_USE_BOOST
 #include <soci/postgresql/soci-postgresql.h>
@@ -34,74 +32,18 @@ namespace iroha {
   namespace ametsuchi {
 
     /**
-     * Return function which can execute SQL statements on provided transaction
-     * @param transaction on which to apply statement.
-     * @param logger is used to report an error.
-     * @return Result with pqxx::result in value case, or exception message
-     * if exception was caught
-     */
-    inline auto makeExecuteResult(pqxx::nontransaction &transaction) noexcept {
-      return [&](const std::string &statement) noexcept
-          ->expected::Result<pqxx::result, std::string> {
-        std::cout << statement << std::endl;
-        try {
-          return expected::makeValue(transaction.exec(statement));
-        } catch (const std::exception &e) {
-          return expected::makeError(e.what());
-        }
-      };
-    }
-
-    /**
-     * Return function which can execute SQL statements on provided transaction
-     * This function is deprecated, and will be removed as soon as wsv_query
-     * will be refactored to return result
-     * @param transaction on which to apply statement.
-     * @param logger is used to report an error.
-     * @return boost::optional with pqxx::result in successful case, or nullopt
-     * if exception was caught
-     */
-    inline auto makeExecuteOptional(pqxx::nontransaction &transaction,
-                                    logger::Logger &logger) noexcept {
-      return [&](const std::string &statement) noexcept
-          ->boost::optional<pqxx::result> {
-        std::cout << statement << std::endl;
-        try {
-          return transaction.exec(statement);
-        } catch (const std::exception &e) {
-          logger->error(e.what());
-          return boost::none;
-        }
-      };
-    }
-
-    /**
-     * Transforms pqxx::result to vector of Ts by applying transform_func
+     * Transforms soci::rowset<soci::row> to vector of Ts by applying transform_func
      * @tparam T - type to transform to
      * @tparam Operator - type of transformation function, must return T
-     * @param result - pqxx::result which contains several rows from the
+     * @param result - soci::rowset<soci::row> which contains several rows from the
      * database
      * @param transform_func - function which transforms result row to T
      * @return vector of target type
      */
     template <typename T, typename Operator>
-    std::vector<T> transform(const pqxx::result &result,
-                             Operator &&transform_func) noexcept {
-      std::vector<T> values;
-      values.reserve(result.size());
-      std::transform(result.begin(),
-                     result.end(),
-                     std::back_inserter(values),
-                     transform_func);
-
-      return values;
-    }
-
-    template <typename T, typename Operator>
     std::vector<T> transform(const soci::rowset<soci::row> &result,
                              Operator &&transform_func) noexcept {
       std::vector<T> values;
-      //      values.reserve(result.size());
       std::transform(result.begin(),
                      result.end(),
                      std::back_inserter(values),
@@ -114,7 +56,6 @@ namespace iroha {
     std::vector<T> transform(const std::vector<soci::row> &result,
                              Operator &&transform_func) noexcept {
       std::vector<T> values;
-      //      values.reserve(result.size());
       std::transform(result.begin(),
                      result.end(),
                      std::back_inserter(values),

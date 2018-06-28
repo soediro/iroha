@@ -201,7 +201,7 @@ namespace iroha {
 
       std::vector<std::shared_ptr<shared_model::interface::AccountAsset>> assets;
 
-      for (int i = 0; i < asset.size(); i++) {
+      for (size_t i = 0; i < asset.size(); i++) {
         auto result = fromResult(makeAccountAsset(account_id, asset.at(i), balance.at(i)));
         if (result) {
           std::shared_ptr<shared_model::interface::AccountAsset> ass = result.get();

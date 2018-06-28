@@ -24,7 +24,6 @@
 #include <soci/soci.h>
 #include <boost/optional.hpp>
 #include <cmath>
-#include <pqxx/pqxx>
 #include <shared_mutex>
 #include "ametsuchi/impl/postgres_options.hpp"
 #include "ametsuchi/key_value_storage.hpp"

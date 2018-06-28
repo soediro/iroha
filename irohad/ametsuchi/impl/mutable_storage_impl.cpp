@@ -30,8 +30,8 @@ namespace iroha {
     MutableStorageImpl::MutableStorageImpl(
         shared_model::interface::types::HashType top_hash,
         std::unique_ptr<soci::session> sql)
-        : sql_(std::move(sql)),
-          top_hash_(top_hash),
+        : top_hash_(top_hash),
+          sql_(std::move(sql)),
           wsv_(std::make_unique<PostgresWsvQuery>(*sql_)),
           executor_(std::make_unique<PostgresWsvCommand>(*sql_)),
           block_index_(std::make_unique<PostgresBlockIndex>(*sql_)),

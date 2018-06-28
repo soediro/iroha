@@ -82,7 +82,7 @@ namespace iroha {
     WsvCommandResult PostgresWsvCommand::insertRolePermissions(
         const shared_model::interface::types::RoleIdType &role_id,
         const shared_model::interface::RolePermissionSet &permissions) {
-      auto entry = [this, &role_id](auto permission) {
+      auto entry = [&role_id](auto permission) {
         return "('" + role_id + "', '" + permission + "')";
       };
 

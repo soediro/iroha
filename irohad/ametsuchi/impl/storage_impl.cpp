@@ -159,20 +159,23 @@ DROP TABLE IF EXISTS index_by_id_height_asset;
     expected::Result<bool, std::string> StorageImpl::createDatabaseIfNotExist(
         const std::string &dbname,
         const std::string &options_str_without_dbname) {
-      pqxx::lazyconnection temp_connection(options_str_without_dbname);
-      auto transaction =
-          std::make_unique<pqxx::nontransaction>(temp_connection);
-      // check if database dbname exists
       try {
-        auto result = transaction->exec(
-            "SELECT datname FROM pg_catalog.pg_database WHERE datname = "
-            + transaction->quote(dbname));
-        if (result.size() == 0) {
-          transaction->exec("CREATE DATABASE " + dbname);
+        soci::session sql(soci::postgresql, options_str_without_dbname);
+
+        int size;
+        std::string name = dbname;
+
+        sql << "SELECT count(datname) FROM pg_catalog.pg_database WHERE datname = :dbname", soci::into(size), soci::use(
+            name);
+
+        if (size == 0) {
+          std::string query = "CREATE DATABASE ";
+          query += dbname;
+          sql << query;
           return expected::makeValue(true);
         }
         return expected::makeValue(false);
-      } catch (const pqxx::failure &e) {
+      } catch (std::exception &e) {
         return expected::makeError<std::string>(
             std::string("Connection to PostgreSQL broken: ") + e.what());
       }

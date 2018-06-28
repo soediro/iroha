@@ -22,7 +22,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <pqxx/pqxx>
 #include "ametsuchi/impl/storage_impl.hpp"
 #include "common/files.hpp"
 #include "framework/config_helper.hpp"

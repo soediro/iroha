@@ -18,7 +18,6 @@
 #ifndef IROHA_POSTGRES_ORDERING_SERVICE_PERSISTENT_STATE_HPP
 #define IROHA_POSTGRES_ORDERING_SERVICE_PERSISTENT_STATE_HPP
 
-#include <pqxx/pqxx>
 #include "ametsuchi/impl/postgres_wsv_common.hpp"
 #include "ametsuchi/ordering_service_persistent_state.hpp"
 #include "common/result.hpp"

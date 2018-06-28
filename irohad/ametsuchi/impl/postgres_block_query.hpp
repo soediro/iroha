@@ -19,8 +19,6 @@
 #define IROHA_POSTGRES_FLAT_BLOCK_QUERY_HPP
 
 #include <boost/optional.hpp>
-#include <pqxx/connection>
-#include <pqxx/nontransaction>
 
 #include "ametsuchi/block_query.hpp"
 #include "ametsuchi/impl/flat_file/flat_file.hpp"

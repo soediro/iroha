@@ -18,8 +18,6 @@
 #ifndef IROHA_TEMPORARY_WSV_IMPL_HPP
 #define IROHA_TEMPORARY_WSV_IMPL_HPP
 
-#include <pqxx/connection>
-#include <pqxx/nontransaction>
 #include <soci/soci.h>
 
 #include "ametsuchi/temporary_wsv.hpp"

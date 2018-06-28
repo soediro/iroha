@@ -19,8 +19,6 @@
 #define IROHA_MUTABLE_STORAGE_IMPL_HPP
 
 #include <map>
-#include <pqxx/connection>
-#include <pqxx/nontransaction>
 #include <soci/soci.h>
 
 #include "ametsuchi/mutable_storage.hpp"

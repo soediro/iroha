@@ -19,7 +19,6 @@
 #define IROHA_POSTGRES_BLOCK_INDEX_HPP
 
 #include <boost/format.hpp>
-#include <pqxx/nontransaction>
 
 #include "ametsuchi/impl/block_index.hpp"
 #include "ametsuchi/impl/postgres_wsv_common.hpp"
