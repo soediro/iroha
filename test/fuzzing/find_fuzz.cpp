@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <memory>
+#include "libfuzzer/libfuzzer_macro.h"
 #include "module/irohad/ametsuchi/ametsuchi_mocks.hpp"
 #include "module/irohad/network/network_mocks.hpp"
 #include "torii/processor/query_processor_impl.hpp"
@@ -39,8 +40,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size) {
     return 0;
   }
   iroha::protocol::Query qry;
-  if (qry.ParseFromString(
-          std::string(reinterpret_cast<const char *>(data), size))) {
+  if (protobuf_mutator::libfuzzer::LoadProtoInput(true, data, size, &qry)) {
     iroha::protocol::QueryResponse resp;
     handler.service_->Find(qry, resp);
   }

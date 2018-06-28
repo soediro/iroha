@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <memory>
+#include "libfuzzer/libfuzzer_macro.h"
 #include "module/irohad/ametsuchi/ametsuchi_mocks.hpp"
 #include "module/irohad/multi_sig_transactions/mst_mocks.hpp"
 #include "module/irohad/network/network_mocks.hpp"
@@ -59,8 +60,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size) {
   EXPECT_CALL(*handler.bq_, hasTxWithHash(_))
       .WillRepeatedly(Return(static_cast<bool>(data[0])));
   iroha::protocol::TxStatusRequest tx;
-  if (tx.ParseFromString(
-          std::string(reinterpret_cast<const char *>(data + 1), size - 1))) {
+  if (protobuf_mutator::libfuzzer::LoadProtoInput(
+          true, data + 1, size - 1, &tx)) {
     iroha::protocol::ToriiResponse resp;
     handler.service_->Status(tx, resp);
   }

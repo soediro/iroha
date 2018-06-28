@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <memory>
+#include "libfuzzer/libfuzzer_macro.h"
 #include "module/irohad/ametsuchi/ametsuchi_mocks.hpp"
 #include "module/irohad/multi_sig_transactions/mst_mocks.hpp"
 #include "module/irohad/network/network_mocks.hpp"
@@ -45,12 +46,7 @@ struct CommandFixture {
   }
 };
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, std::size_t size) {
+DEFINE_BINARY_PROTO_FUZZER(const iroha::protocol::Transaction &tx) {
   static CommandFixture handler;
-  iroha::protocol::Transaction tx;
-  if (tx.ParseFromString(
-          std::string(reinterpret_cast<const char *>(data), size))) {
-    handler.service_->Torii(tx);
-  }
-  return 0;
+  handler.service_->Torii(tx);
 }
