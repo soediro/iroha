@@ -91,7 +91,7 @@ namespace shared_model {
         return reduced_payload_.created_time();
       }
 
-      Transaction::QuorumType quorum() const override {
+      interface::types::QuorumType quorum() const override {
         return reduced_payload_.quorum();
       }
       boost::optional<std::shared_ptr<interface::BatchMeta>> batch_meta()
@@ -106,7 +106,7 @@ namespace shared_model {
 
      private:
       // lazy
-      template <typename T> 
+      template <typename T>
       using Lazy = detail::LazyInitializer<T>;
 
       const iroha::protocol::Transaction::Payload &payload_{proto_->payload()};
