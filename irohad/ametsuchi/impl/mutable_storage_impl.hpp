@@ -18,8 +18,8 @@
 #ifndef IROHA_MUTABLE_STORAGE_IMPL_HPP
 #define IROHA_MUTABLE_STORAGE_IMPL_HPP
 
-#include <map>
 #include <soci/soci.h>
+#include <map>
 
 #include "ametsuchi/mutable_storage.hpp"
 #include "execution/command_executor.hpp"
@@ -36,9 +36,8 @@ namespace iroha {
       friend class StorageImpl;
 
      public:
-      MutableStorageImpl(
-          shared_model::interface::types::HashType top_hash,
-          std::unique_ptr<soci::session> sql);
+      MutableStorageImpl(shared_model::interface::types::HashType top_hash,
+                         std::unique_ptr<soci::session> sql);
 
       bool apply(
           const shared_model::interface::Block &block,
@@ -57,8 +56,8 @@ namespace iroha {
           block_store_;
 
       std::unique_ptr<soci::session> sql_;
-      std::unique_ptr<WsvQuery> wsv_;
-      std::unique_ptr<WsvCommand> executor_;
+      std::shared_ptr<WsvQuery> wsv_;
+      std::shared_ptr<WsvCommand> executor_;
       std::unique_ptr<BlockIndex> block_index_;
       std::shared_ptr<CommandExecutor> command_executor_;
 

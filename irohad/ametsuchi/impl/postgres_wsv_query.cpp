@@ -37,11 +37,9 @@ namespace iroha {
     const std::string kDomainId = "domain_id";
 
     PostgresWsvQuery::PostgresWsvQuery(soci::session &sql)
-        : sql_(sql),
-          log_(logger::log("PostgresWsvQuery")) {}
+        : sql_(sql), log_(logger::log("PostgresWsvQuery")) {}
 
-    PostgresWsvQuery::PostgresWsvQuery(
-        std::unique_ptr<soci::session> sql_ptr)
+    PostgresWsvQuery::PostgresWsvQuery(std::unique_ptr<soci::session> sql_ptr)
         : sql_ptr_(std::move(sql_ptr)),
           sql_(*sql_ptr_),
           log_(logger::log("PostgresWsvQuery")) {}
@@ -50,32 +48,49 @@ namespace iroha {
         const AccountIdType &permitee_account_id,
         const AccountIdType &account_id,
         shared_model::interface::permissions::Grantable permission) {
-      if (permission == shared_model::interface::permissions::Grantable::COUNT) {
+      if (permission
+          == shared_model::interface::permissions::Grantable::COUNT) {
         auto perm = shared_model::proto::permissions::toString(permission);
         return false;
       }
-      std::cout << "hasAccountGrantablePermission(" << permitee_account_id << ", " << account_id << ", " << shared_model::proto::permissions::toString(permission) << ")" << std::endl;
+      std::cout << "hasAccountGrantablePermission(" << permitee_account_id
+                << ", " << account_id << ", "
+                << shared_model::proto::permissions::toString(permission) << ")"
+                << std::endl;
       int size;
       auto perm = shared_model::proto::permissions::toString(permission);
       sql_ << "SELECT count(*) FROM account_has_grantable_permissions WHERE "
-          "permittee_account_id = :permittee_account_id AND account_id = :account_id "
-          " AND permission = :permission ", soci::into(size), soci::use(permitee_account_id), soci::use(account_id), soci::use(perm);
+              "permittee_account_id = :permittee_account_id AND account_id = "
+              ":account_id "
+              " AND permission = :permission ",
+          soci::into(size), soci::use(permitee_account_id),
+          soci::use(account_id), soci::use(perm);
       return size == 1;
     }
 
     boost::optional<std::vector<RoleIdType>> PostgresWsvQuery::getAccountRoles(
         const AccountIdType &account_id) {
       std::cout << "getAccountRoles(" << account_id << ")" << std::endl;
-      int size;
-      sql_ << "SELECT count(*) FROM account_has_roles WHERE account_id = :account_id", soci::into(size), soci::use(account_id);
+      std::vector<RoleIdType> roles;
+      soci::indicator ind;
+      std::string row;
+      soci::statement st =
+          (sql_.prepare << "SELECT role_id FROM account_has_roles WHERE "
+                           "account_id = :account_id",
+           soci::into(row, ind),
+           soci::use(account_id));
+      st.execute();
 
-      if (size == 0) {
-        return std::vector<RoleIdType>();
+      while (st.fetch()) {
+        switch (ind) {
+          case soci::i_ok:
+            roles.push_back(row);
+            break;
+          case soci::i_null:
+          case soci::i_truncated:
+            break;
+        }
       }
-
-      std::vector<RoleIdType> roles(size);
-      sql_ << "SELECT role_id FROM account_has_roles WHERE account_id = :account_id", soci::into(roles), soci::use(account_id);
-
       return roles;
     }
 
@@ -83,28 +98,33 @@ namespace iroha {
     PostgresWsvQuery::getRolePermissions(const RoleIdType &role_name) {
       std::cout << "getRolePermissions(" << role_name << ")" << std::endl;
       shared_model::interface::RolePermissionSet set;
+      soci::indicator ind;
+      std::string row;
+      soci::statement st =
+          (sql_.prepare << "SELECT permission FROM role_has_permissions WHERE "
+                           "role_id = :role_name",
+           soci::into(row, ind),
+           soci::use(role_name));
+      st.execute();
 
-      int size;
-      sql_ << "SELECT count(permission) FROM role_has_permissions WHERE role_id = :role_name", soci::into(size), soci::use(role_name);
-
-      if (size == 0) {
-        return set;
+      while (st.fetch()) {
+        switch (ind) {
+          case soci::i_ok:
+            set.set(shared_model::interface::permissions::fromOldR(row));
+            break;
+          case soci::i_null:
+          case soci::i_truncated:
+            break;
+        }
       }
-
-      std::vector<std::string> perms(size);
-      sql_ << "SELECT permission FROM role_has_permissions WHERE role_id = :role_name", soci::into(perms), soci::use(role_name);
-
-      for (const auto &perm: perms) {
-        set.set(shared_model::interface::permissions::fromOldR(perm));
-      }
-
       return set;
     }
 
     boost::optional<std::vector<RoleIdType>> PostgresWsvQuery::getRoles() {
-      soci::rowset<RoleIdType> roles = (sql_.prepare << "SELECT role_id FROM role");
+      soci::rowset<RoleIdType> roles =
+          (sql_.prepare << "SELECT role_id FROM role");
       std::vector<RoleIdType> result;
-      for (const auto &role: roles) {
+      for (const auto &role : roles) {
         result.push_back(role);
       }
       return boost::make_optional(result);
@@ -133,7 +153,8 @@ namespace iroha {
       std::cout << "getAccountDetail(" << account_id << ")" << std::endl;
       boost::optional<std::string> detail;
 
-      sql_ << "SELECT data FROM account WHERE account_id = :account_id", soci::into(detail), soci::use(account_id);
+      sql_ << "SELECT data FROM account WHERE account_id = :account_id",
+          soci::into(detail), soci::use(account_id);
 
       return detail;
     }
@@ -141,71 +162,76 @@ namespace iroha {
     boost::optional<std::vector<PubkeyType>> PostgresWsvQuery::getSignatories(
         const AccountIdType &account_id) {
       std::cout << "getSignatories(" << account_id << ")" << std::endl;
-      int size;
-      sql_ << "SELECT count(*) FROM account_has_signatory WHERE account_id = "
-              ":account_id",
-          soci::into(size), soci::use(account_id);
-
       std::vector<PubkeyType> pubkeys;
-      if (size == 0) {
-        return pubkeys;
+      soci::indicator ind;
+      std::string row;
+      soci::statement st =
+          (sql_.prepare << "SELECT public_key FROM account_has_signatory WHERE "
+                           "account_id = :account_id",
+           soci::into(row, ind),
+           soci::use(account_id));
+      st.execute();
+
+      while (st.fetch()) {
+        switch (ind) {
+          case soci::i_ok:
+            pubkeys.push_back(shared_model::crypto::PublicKey(
+                shared_model::crypto::Blob::fromHexString(row)));
+            break;
+          case soci::i_null:
+          case soci::i_truncated:
+            break;
+        }
       }
-
-      std::vector<std::string> rows(size);
-
-      sql_ << "SELECT public_key FROM account_has_signatory WHERE account_id = "
-              ":account_id",
-          soci::into(rows), soci::use(account_id);
-
-      std::for_each(rows.begin(), rows.end(), [&](const auto &pk) {
-        pubkeys.push_back(shared_model::crypto::PublicKey(
-            shared_model::crypto::Blob::fromHexString(pk)));
-      });
 
       return boost::make_optional(pubkeys);
     }
 
     boost::optional<std::shared_ptr<shared_model::interface::Asset>>
     PostgresWsvQuery::getAsset(const AssetIdType &asset_id) {
-
       boost::optional<std::string> domain_id, data;
       boost::optional<int32_t> precision;
       boost::optional<shared_model::interface::types::QuorumType> quorum;
       std::cout << "getAsset(" << asset_id << ")" << std::endl;
       sql_ << "SELECT domain_id, precision FROM asset WHERE asset_id = "
-          ":account_id",
-          soci::into(domain_id), soci::into(precision),
-          soci::use(asset_id);
+              ":account_id",
+          soci::into(domain_id), soci::into(precision), soci::use(asset_id);
 
       if (not domain_id) {
         return boost::none;
       }
 
-      return fromResult(
-          makeAsset(asset_id, domain_id.get(), precision.get()));
+      return fromResult(makeAsset(asset_id, domain_id.get(), precision.get()));
     }
 
     boost::optional<
         std::vector<std::shared_ptr<shared_model::interface::AccountAsset>>>
     PostgresWsvQuery::getAccountAssets(const AccountIdType &account_id) {
       std::cout << "getAccountAssets(" << account_id << ")" << std::endl;
-      int size;
-      sql_ << "SELECT count(*) FROM account_has_asset WHERE account_id = :account_id", soci::into(size), soci::use(account_id);
+      soci::indicator ind;
+      soci::row row;
+      soci::statement st = (sql_.prepare << "SELECT * FROM account_has_asset "
+                                            "WHERE account_id = :account_id",
+                            soci::into(row, ind),
+                            soci::use(account_id));
+      st.execute();
+      std::vector<std::shared_ptr<shared_model::interface::AccountAsset>>
+          assets;
 
-      if (size == 0) {
-        return std::vector<std::shared_ptr<shared_model::interface::AccountAsset>>();
-      }
-
-      std::vector<std::string> asset(size), balance(size);
-      sql_ << "SELECT asset_id, amount FROM account_has_asset WHERE account_id = :account_id", soci::into(asset), soci::into(balance), soci::use(account_id);
-
-      std::vector<std::shared_ptr<shared_model::interface::AccountAsset>> assets;
-
-      for (size_t i = 0; i < asset.size(); i++) {
-        auto result = fromResult(makeAccountAsset(account_id, asset.at(i), balance.at(i)));
-        if (result) {
-          std::shared_ptr<shared_model::interface::AccountAsset> ass = result.get();
-          assets.push_back(ass);
+      while (st.fetch()) {
+        switch (ind) {
+          case soci::i_null:
+          case soci::i_truncated:
+            break;
+          case soci::i_ok:
+            auto result = fromResult(makeAccountAsset(
+                account_id, row.get<std::string>(1), row.get<std::string>(2)));
+            if (result) {
+              std::shared_ptr<shared_model::interface::AccountAsset> ass =
+                  result.get();
+              assets.push_back(ass);
+            }
+            break;
         }
       }
       return boost::make_optional(assets);
@@ -214,9 +240,12 @@ namespace iroha {
     boost::optional<std::shared_ptr<shared_model::interface::AccountAsset>>
     PostgresWsvQuery::getAccountAsset(const AccountIdType &account_id,
                                       const AssetIdType &asset_id) {
-      std::cout << "getAccountAsset(" << account_id << ", " << asset_id << ")" << std::endl;
+      std::cout << "getAccountAsset(" << account_id << ", " << asset_id << ")"
+                << std::endl;
       boost::optional<std::string> amount;
-      sql_ << "SELECT amount FROM account_has_asset WHERE account_id = :account_id AND asset_id = :asset_id", soci::into(amount), soci::use(account_id), soci::use(asset_id);
+      sql_ << "SELECT amount FROM account_has_asset WHERE account_id = "
+              ":account_id AND asset_id = :asset_id",
+          soci::into(amount), soci::use(account_id), soci::use(asset_id);
 
       if (not amount) {
         return boost::none;

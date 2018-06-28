@@ -27,13 +27,15 @@ namespace iroha {
                      std::string>
     PostgresOrderingServicePersistentState::create(
         const std::string &postgres_options) {
-      auto sql = std::make_unique<soci::session>(soci::postgresql, postgres_options);
+      auto sql =
+          std::make_unique<soci::session>(soci::postgresql, postgres_options);
 
       expected::Result<std::shared_ptr<PostgresOrderingServicePersistentState>,
                        std::string>
           storage;
       storage = expected::makeValue(
-          std::make_shared<PostgresOrderingServicePersistentState>(std::move(sql)));
+          std::make_shared<PostgresOrderingServicePersistentState>(
+              std::move(sql)));
       return storage;
     }
 
@@ -44,7 +46,8 @@ namespace iroha {
           log_(logger::log("PostgresOrderingServicePersistentState")) {}
 
     bool PostgresOrderingServicePersistentState::initStorage() {
-      *sql_ << "CREATE TABLE IF NOT EXISTS ordering_service_state (proposal_height bigserial)";
+      *sql_ << "CREATE TABLE IF NOT EXISTS ordering_service_state "
+               "(proposal_height bigserial)";
       *sql_ << "INSERT INTO ordering_service_state VALUES (2)";
       return true;
     }
@@ -60,19 +63,21 @@ namespace iroha {
       log_->info("Save proposal_height in ordering_service_state "
                  + std::to_string(height));
       *sql_ << "DELETE FROM ordering_service_state";
-      *sql_ << "INSERT INTO ordering_service_state VALUES (:height)", soci::use(height);
+      *sql_ << "INSERT INTO ordering_service_state VALUES (:height)",
+          soci::use(height);
       return true;
     }
 
     boost::optional<size_t>
     PostgresOrderingServicePersistentState::loadProposalHeight() const {
       boost::optional<size_t> height;
-      *sql_ << "SELECT * FROM ordering_service_state LIMIT 1", soci::into(height);
+      *sql_ << "SELECT * FROM ordering_service_state LIMIT 1",
+          soci::into(height);
 
       if (not height) {
         log_->error(
             "There is no proposal_height in ordering_service_state. "
-                "Use default value 2.");
+            "Use default value 2.");
         height = 2;
       }
       return height;

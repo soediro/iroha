@@ -32,8 +32,7 @@ namespace iroha {
           log_(logger::log("PostgresBlockIndex")) {}
 
     PostgresBlockQuery::PostgresBlockQuery(
-        std::unique_ptr<soci::session> sql_ptr,
-        KeyValueStorage &file_store)
+        std::unique_ptr<soci::session> sql_ptr, KeyValueStorage &file_store)
         : sql_ptr_(std::move(sql_ptr)),
           sql_(*sql_ptr_),
           block_store_(file_store),
@@ -83,19 +82,26 @@ namespace iroha {
     std::vector<shared_model::interface::types::HeightType>
     PostgresBlockQuery::getBlockIds(
         const shared_model::interface::types::AccountIdType &account_id) {
-      int size;
-      sql_ << "SELECT count(DISTINCT height) FROM height_by_account_set WHERE account_id = :id", soci::into(size), soci::use(account_id);
-
-      if (size == 0) {
-        return {};
-      }
-      std::vector<std::string> blockIds(size);
       std::vector<shared_model::interface::types::HeightType> result;
-      sql_ << "SELECT DISTINCT height FROM height_by_account_set WHERE account_id = :id", soci::into(blockIds), soci::use(account_id);
+      soci::indicator ind;
+      std::string row;
+      soci::statement st =
+          (sql_.prepare << "SELECT DISTINCT height FROM height_by_account_set "
+                           "WHERE account_id = :id",
+           soci::into(row, ind),
+           soci::use(account_id));
+      st.execute();
 
-      std::transform(blockIds.begin(), blockIds.end(), std::back_inserter(result), [](const auto &id) {
-        return std::stoull(id);
-      });
+      while (st.fetch()) {
+        switch (ind) {
+          case soci::i_ok:
+            result.push_back(std::stoull(row));
+            break;
+          case soci::i_null:
+          case soci::i_truncated:
+            break;
+        }
+      }
       return result;
     }
 
@@ -105,7 +111,8 @@ namespace iroha {
       boost::optional<std::string> block_str;
       auto hash_str = hash.hex();
 
-      sql_ << "SELECT height FROM height_by_hash WHERE hash = :hash", soci::into(block_str), soci::use(hash_str);
+      sql_ << "SELECT height FROM height_by_hash WHERE hash = :hash",
+          soci::into(block_str), soci::use(hash_str);
       if (block_str) {
         blockId = std::stoull(block_str.get());
       } else {
@@ -114,7 +121,8 @@ namespace iroha {
       return blockId;
     }
 
-    std::function<void(std::vector<std::string> &result)> PostgresBlockQuery::callback(
+    std::function<void(std::vector<std::string> &result)>
+    PostgresBlockQuery::callback(
         const rxcpp::subscriber<wTransaction> &subscriber, uint64_t block_id) {
       return [this, &subscriber, block_id](std::vector<std::string> &result) {
         auto block = block_store_.get(block_id) | [](const auto &bytes) {
@@ -152,15 +160,29 @@ namespace iroha {
             }
 
             for (const auto &block_id : block_ids) {
-              int size;
-              sql_ << "SELECT count(DISTINCT index) FROM index_by_creator_height WHERE creator_id = :id AND height = :height"
-                  , soci::into(size), soci::use(account_id), soci::use(block_id);
-              if (size == 0) {
-                continue;
+              std::vector<std::string> index;
+              soci::indicator ind;
+              std::string row;
+              soci::statement st =
+                  (sql_.prepare
+                       << "SELECT DISTINCT index FROM index_by_creator_height "
+                          "WHERE creator_id = :id AND height = :height",
+                   soci::into(row, ind),
+                   soci::use(account_id),
+                   soci::use(block_id));
+              st.execute();
+
+              while (st.fetch()) {
+                switch (ind) {
+                  case soci::i_ok:
+                    index.push_back(row);
+                    break;
+                  case soci::i_null:
+                  case soci::i_truncated:
+                    break;
+                }
               }
-              std::vector<std::string> index(size);
-              sql_ << "SELECT DISTINCT index FROM index_by_creator_height WHERE creator_id = :id AND height = :height"
-                  , soci::into(index), soci::use(account_id), soci::use(block_id);
+
               this->callback(subscriber, block_id)(index);
             }
             subscriber.on_completed();
@@ -171,30 +193,43 @@ namespace iroha {
     PostgresBlockQuery::getAccountAssetTransactions(
         const shared_model::interface::types::AccountIdType &account_id,
         const shared_model::interface::types::AssetIdType &asset_id) {
-      return rxcpp::observable<>::create<wTransaction>([this,
-                                                        account_id,
-                                                        asset_id](
-                                                           auto subscriber) {
-        auto block_ids = this->getBlockIds(account_id);
-        if (block_ids.empty()) {
-          subscriber.on_completed();
-          return;
-        }
+      return rxcpp::observable<>::create<wTransaction>(
+          [this, account_id, asset_id](auto subscriber) {
+            auto block_ids = this->getBlockIds(account_id);
+            if (block_ids.empty()) {
+              subscriber.on_completed();
+              return;
+            }
 
-        for (const auto &block_id : block_ids) {
-          int size;
-          sql_ << "SELECT count(DISTINCT index) FROM index_by_id_height_asset WHERE id = :id AND height = :height AND asset_id = :asset_id"
-              , soci::into(size), soci::use(account_id), soci::use(block_id), soci::use(asset_id);
-          if (size == 0) {
-            continue;
-          }
-          std::vector<std::string> index(size);
-          sql_ << "SELECT DISTINCT index FROM index_by_id_height_asset WHERE id = :id AND height = :height AND asset_id = :asset_id"
-              , soci::into(index), soci::use(account_id), soci::use(block_id), soci::use(asset_id);
-          this->callback(subscriber, block_id)(index);
-        }
-        subscriber.on_completed();
-      });
+            for (const auto &block_id : block_ids) {
+              std::vector<std::string> index;
+              soci::indicator ind;
+              std::string row;
+              soci::statement st =
+                  (sql_.prepare
+                       << "SELECT DISTINCT index FROM index_by_id_height_asset "
+                          "WHERE id = :id AND height = :height AND asset_id = "
+                          ":asset_id",
+                   soci::into(row, ind),
+                   soci::use(account_id),
+                   soci::use(block_id),
+                   soci::use(asset_id));
+              st.execute();
+
+              while (st.fetch()) {
+                switch (ind) {
+                  case soci::i_ok:
+                    index.push_back(row);
+                    break;
+                  case soci::i_null:
+                  case soci::i_truncated:
+                    break;
+                }
+              }
+              this->callback(subscriber, block_id)(index);
+            }
+            subscriber.on_completed();
+          });
     }
 
     rxcpp::observable<boost::optional<BlockQuery::wTransaction>>

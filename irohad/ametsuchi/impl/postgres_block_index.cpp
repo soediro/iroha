@@ -32,12 +32,13 @@ namespace iroha {
   namespace ametsuchi {
 
     PostgresBlockIndex::PostgresBlockIndex(soci::session &sql)
-        : sql_(sql),
-          log_(logger::log("PostgresBlockIndex")) {}
+        : sql_(sql), log_(logger::log("PostgresBlockIndex")) {}
 
     auto PostgresBlockIndex::indexAccountIdHeight(const std::string &account_id,
                                                   const std::string &height) {
-      sql_ << "INSERT INTO height_by_account_set(account_id, height) VALUES (:id, :height)", soci::use(account_id), soci::use(height);
+      sql_ << "INSERT INTO height_by_account_set(account_id, height) VALUES "
+              "(:id, :height)",
+          soci::use(account_id), soci::use(height);
       return true;
     }
 
@@ -69,9 +70,11 @@ namespace iroha {
                   boost::for_each(ids, [&](const auto &id) {
                     try {
                       sql_ << "INSERT INTO index_by_id_height_asset(id, "
-                          "height, asset_id, "
-                          "index) "
-                          "VALUES (:id, :height, :asset_id, :index)", soci::use(id), soci::use(height), soci::use(asset_id), soci::use(index);
+                              "height, asset_id, "
+                              "index) "
+                              "VALUES (:id, :height, :asset_id, :index)",
+                          soci::use(id), soci::use(height), soci::use(asset_id),
+                          soci::use(index);
                     } catch (std::exception &e) {
                       status = false;
                     }
@@ -93,15 +96,18 @@ namespace iroha {
             const auto &index = std::to_string(tx.index());
 
             // tx hash -> block where hash is stored
-            sql_ << "INSERT INTO height_by_hash(hash, height) VALUES (:hash, :height)", soci::use(hash), soci::use(height);
+            sql_ << "INSERT INTO height_by_hash(hash, height) VALUES (:hash, "
+                    ":height)",
+                soci::use(hash), soci::use(height);
 
             this->indexAccountIdHeight(creator_id, height);
 
             // to make index account_id:height -> list of tx indexes
             // (where tx is placed in the block)
             sql_ << "INSERT INTO index_by_creator_height(creator_id, "
-                "height, index) "
-                "VALUES (:id, :height, :index)", soci::use(creator_id), soci::use(height), soci::use(index);
+                    "height, index) "
+                    "VALUES (:id, :height, :index)",
+                soci::use(creator_id), soci::use(height), soci::use(index);
 
             this->indexAccountAssets(
                 creator_id, height, index, tx.value().commands());

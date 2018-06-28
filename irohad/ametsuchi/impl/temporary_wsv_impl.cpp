@@ -23,16 +23,13 @@
 
 namespace iroha {
   namespace ametsuchi {
-    TemporaryWsvImpl::TemporaryWsvImpl(
-        std::unique_ptr<soci::session> sql)
+    TemporaryWsvImpl::TemporaryWsvImpl(std::unique_ptr<soci::session> sql)
         : sql_(std::move(sql)),
-          wsv_(std::make_unique<PostgresWsvQuery>(*sql_)),
-          executor_(std::make_unique<PostgresWsvCommand>(*sql_)),
+          wsv_(std::make_shared<PostgresWsvQuery>(*sql_)),
+          executor_(std::make_shared<PostgresWsvCommand>(*sql_)),
+          command_executor_(std::make_shared<CommandExecutor>(wsv_, executor_)),
+          command_validator_(std::make_shared<CommandValidator>(wsv_)),
           log_(logger::log("TemporaryWSV")) {
-      auto query = std::make_shared<PostgresWsvQuery>(*sql_);
-      auto command = std::make_shared<PostgresWsvCommand>(*sql_);
-      command_executor_ = std::make_shared<CommandExecutor>(query, command);
-      command_validator_ = std::make_shared<CommandValidator>(query);
       *sql_ << "BEGIN";
     }
 
@@ -56,15 +53,15 @@ namespace iroha {
                             });
       };
 
-      *sql_ << "SAVEPOINT savepoint2_";
+      *sql_ << "SAVEPOINT savepoint_";
       auto result =
           apply_function(tx, *wsv_)
           and std::all_of(
                   tx.commands().begin(), tx.commands().end(), execute_command);
       if (result) {
-        *sql_ << "RELEASE SAVEPOINT savepoint2_";
+        *sql_ << "RELEASE SAVEPOINT savepoint_";
       } else {
-        *sql_ << "ROLLBACK TO SAVEPOINT savepoint2_";
+        *sql_ << "ROLLBACK TO SAVEPOINT savepoint_";
       }
       return result;
     }

@@ -70,8 +70,7 @@ namespace iroha {
       return expected::makeValue<std::unique_ptr<MutableStorage>>(
           std::make_unique<MutableStorageImpl>(
               top_hash.value_or(shared_model::interface::types::HashType("")),
-              std::move(sql)
-          ));
+              std::move(sql)));
     }
 
     bool StorageImpl::insertBlock(const shared_model::interface::Block &block) {
@@ -165,8 +164,9 @@ DROP TABLE IF EXISTS index_by_id_height_asset;
         int size;
         std::string name = dbname;
 
-        sql << "SELECT count(datname) FROM pg_catalog.pg_database WHERE datname = :dbname", soci::into(size), soci::use(
-            name);
+        sql << "SELECT count(datname) FROM pg_catalog.pg_database WHERE "
+               "datname = :dbname",
+            soci::into(size), soci::use(name);
 
         if (size == 0) {
           std::string query = "CREATE DATABASE ";
@@ -197,9 +197,9 @@ DROP TABLE IF EXISTS index_by_id_height_asset;
       return expected::makeValue(ConnectionContext(std::move(*block_store)));
     }
 
-    expected::Result<std::shared_ptr<soci::connection_pool>,
-                            std::string>
-    StorageImpl::initPostgresConnection(std::string &options_str, size_t pool_size) {
+    expected::Result<std::shared_ptr<soci::connection_pool>, std::string>
+    StorageImpl::initPostgresConnection(std::string &options_str,
+                                        size_t pool_size) {
       auto pool = std::make_shared<soci::connection_pool>(pool_size);
 
       for (size_t i = 0; i != pool_size; i++) {
@@ -235,16 +235,16 @@ DROP TABLE IF EXISTS index_by_id_height_asset;
       expected::Result<std::shared_ptr<StorageImpl>, std::string> storage;
       ctx_result.match(
           [&](expected::Value<ConnectionContext> &ctx) {
-            db_result.match([&](expected::Value<std::shared_ptr<soci::connection_pool>> &connection) {
-            storage = expected::makeValue(std::shared_ptr<StorageImpl>(
-                new StorageImpl(block_store_dir,
-                                options,
-                                std::move(ctx.value.block_store),
-                                connection.value
-                )));
-            },
-            [&](expected::Error<std::string> &error) { storage = error; }
-            );
+            db_result.match(
+                [&](expected::Value<std::shared_ptr<soci::connection_pool>>
+                        &connection) {
+                  storage = expected::makeValue(std::shared_ptr<StorageImpl>(
+                      new StorageImpl(block_store_dir,
+                                      options,
+                                      std::move(ctx.value.block_store),
+                                      connection.value)));
+                },
+                [&](expected::Error<std::string> &error) { storage = error; });
           },
           [&](expected::Error<std::string> &error) { storage = error; });
       return storage;
@@ -272,11 +272,11 @@ DROP TABLE IF EXISTS index_by_id_height_asset;
     }
 
     std::shared_ptr<BlockQuery> StorageImpl::getBlockQuery() const {
-      auto sql = std::make_unique<soci::session>(soci::postgresql, postgres_options_.optionsString());
+      auto sql = std::make_unique<soci::session>(
+          soci::postgresql, postgres_options_.optionsString());
 
-      return std::make_shared<PostgresBlockQuery>(
-          std::move(sql),
-          *block_store_);
+      return std::make_shared<PostgresBlockQuery>(std::move(sql),
+                                                  *block_store_);
     }
 
     rxcpp::observable<std::shared_ptr<shared_model::interface::Block>>

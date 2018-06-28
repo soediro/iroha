@@ -32,15 +32,12 @@ namespace iroha {
         std::unique_ptr<soci::session> sql)
         : top_hash_(top_hash),
           sql_(std::move(sql)),
-          wsv_(std::make_unique<PostgresWsvQuery>(*sql_)),
-          executor_(std::make_unique<PostgresWsvCommand>(*sql_)),
+          wsv_(std::make_shared<PostgresWsvQuery>(*sql_)),
+          executor_(std::make_shared<PostgresWsvCommand>(*sql_)),
           block_index_(std::make_unique<PostgresBlockIndex>(*sql_)),
+          command_executor_(std::make_shared<CommandExecutor>(wsv_, executor_)),
           committed(false),
           log_(logger::log("MutableStorage")) {
-      auto query = std::make_shared<PostgresWsvQuery>(*sql_);
-      auto command = std::make_shared<PostgresWsvCommand>(*sql_);
-      command_executor_ =
-          std::make_shared<CommandExecutor>(CommandExecutor(query, command));
       *sql_ << "BEGIN";
     }
 
@@ -65,7 +62,7 @@ namespace iroha {
                            execute_command);
       };
 
-      *sql_ << "SAVEPOINT savepoint2_";
+      *sql_ << "SAVEPOINT savepoint_";
       auto result = function(block, *wsv_, top_hash_)
           and std::all_of(block.transactions().begin(),
                           block.transactions().end(),
@@ -76,9 +73,9 @@ namespace iroha {
         block_index_->index(block);
 
         top_hash_ = block.hash();
-        *sql_ << "RELEASE SAVEPOINT savepoint2_";
+        *sql_ << "RELEASE SAVEPOINT savepoint_";
       } else {
-        *sql_ << "ROLLBACK TO SAVEPOINT savepoint2_";
+        *sql_ << "ROLLBACK TO SAVEPOINT savepoint_";
       }
       return result;
     }
