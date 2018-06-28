@@ -718,22 +718,12 @@ TEST_F(FieldValidatorTest, CommandFieldsValidation) {
  * meaningful message
  */
 TEST_F(FieldValidatorTest, TransactionFieldsValidation) {
-  iroha::protocol::Transaction proto_tx;
-  proto_tx.add_signatures();  // at least one signature in message
-
-
+    auto proto_tx = std::make_shared<iroha::protocol::Transaction>();
+  proto_tx->add_signatures();  // at least one signature in message
+  proto_tx->mutable_payload()->mutable_reduced_payload()->add_commands();
   // iterate over all fields in transaction
-  iterateContainer(
-      [] { return iroha::protocol::Transaction::descriptor(); },
-      [&](auto field) {
-        return field->is_repeated()
-            ? proto_tx.GetReflection()->MutableRepeatedMessage(
-                  &proto_tx, field, 0)
-            : proto_tx.GetReflection()->MutableMessage(&proto_tx, field);
-      },
-      [this](auto field, auto transaction_field) {
-        this->runTestCases(field);
-      },
+  iterateContainerRecursive(proto_tx, field_validators,
+      [this](auto field, auto transaction_field) { this->runTestCases(field); },
       [] {});
 }
 
