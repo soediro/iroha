@@ -401,11 +401,10 @@ pipeline {
             beforeAgent true
             anyOf {
               expression { return params.Doxygen }
-              expression { return GIT_LOCAL_BRANCH ==~ /(master|develop)/ }
               expression { return REST_PR_CONDITIONS_SATISFIED == "true" }
             }
           }
-          agent { label 'x86_64_aws_cov' }
+          agent { label 'x86_64_aws_docs' }
           steps {
             script {
               def doxygen = load ".jenkinsci/doxygen.groovy"
