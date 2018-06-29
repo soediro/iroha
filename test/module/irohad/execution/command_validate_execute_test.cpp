@@ -1952,8 +1952,15 @@ class DetachRoleTest : public CommandValidateExecuteTest {
         TestTransactionBuilder().detachRole(kAccountId, kMasterRole));
     detach_role =
         getConcreteCommand<shared_model::interface::DetachRole>(command);
+    role_list = admin_roles;
+    // account cannot have only 1 role, so add a duumy one
+    role_list.push_back(kDummyRole);
   }
   std::shared_ptr<shared_model::interface::DetachRole> detach_role;
+  std::vector<std::string> role_list;
+  const std::string kDummyRole = "dummy";
+  const boost::optional<shared_model::interface::RolePermissionSet>
+      kEmptyPermSet = shared_model::interface::RolePermissionSet();
 };
 
 /**
@@ -1963,9 +1970,16 @@ class DetachRoleTest : public CommandValidateExecuteTest {
  */
 TEST_F(DetachRoleTest, ValidCase) {
   EXPECT_CALL(*wsv_query, getAccountRoles(kAdminId))
-      .WillOnce(Return(admin_roles));
+      .Times(2)
+      .WillRepeatedly(Return(role_list));
+
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
+      .Times(2)
+      .WillRepeatedly(Return(role_permissions));
+  EXPECT_CALL(*wsv_query, getRolePermissions(kMasterRole))
       .WillOnce(Return(role_permissions));
+  EXPECT_CALL(*wsv_query, getRolePermissions(kDummyRole))
+      .WillOnce(Return(kEmptyPermSet));
   EXPECT_CALL(
       *wsv_command,
       deleteAccountRole(detach_role->accountId(), detach_role->roleName()))
@@ -1980,9 +1994,11 @@ TEST_F(DetachRoleTest, ValidCase) {
  */
 TEST_F(DetachRoleTest, InvalidCase) {
   EXPECT_CALL(*wsv_query, getAccountRoles(kAdminId))
-      .WillOnce(Return(admin_roles));
+      .WillOnce(Return(role_list));
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
       .WillOnce(Return(boost::none));
+  EXPECT_CALL(*wsv_query, getRolePermissions(kDummyRole))
+      .WillOnce(Return(kEmptyPermSet));
   ASSERT_TRUE(err(validateAndExecute(command)));
 }
 
@@ -1997,6 +2013,17 @@ TEST_F(DetachRoleTest, InvalidCaseWhenDeleteAccountRoleFails) {
       deleteAccountRole(detach_role->accountId(), detach_role->roleName()))
       .WillOnce(Return(makeEmptyError()));
   ASSERT_TRUE(err(execute(command)));
+}
+
+TEST_F(DetachRoleTest, InvalidCaseWhenLastRole) {
+  EXPECT_CALL(*wsv_query, getAccountRoles(kAdminId))
+      .Times(2)
+      .WillRepeatedly(Return(admin_roles));
+  EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
+      .WillOnce(Return(role_permissions));
+  EXPECT_CALL(*wsv_query, getRolePermissions(kMasterRole))
+      .WillOnce(Return(role_permissions));
+  ASSERT_TRUE(err(validateAndExecute(command)));
 }
 
 class GrantPermissionTest : public CommandValidateExecuteTest {
