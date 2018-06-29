@@ -57,9 +57,9 @@ namespace shared_model {
 
      public:
       ContainerValidator(
+          const FieldValidator &field_validator = FieldValidator(),
           const TransactionValidator &transaction_validator =
-              TransactionValidator(),
-          const FieldValidator &field_validator = FieldValidator())
+              TransactionValidator())
           : transaction_validator_(transaction_validator),
             field_validator_(field_validator) {}
       Answer validate(const Iface &cont, std::string reason_name) const {

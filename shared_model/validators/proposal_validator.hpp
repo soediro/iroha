@@ -38,6 +38,9 @@ namespace shared_model {
                                                         FieldValidator,
                                                         TransactionValidator> {
      public:
+      using ContainerValidator<interface::Proposal,
+                               FieldValidator,
+                               TransactionValidator>::ContainerValidator;
       /**
        * Applies validation on proposal
        * @param proposal

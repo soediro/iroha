@@ -38,6 +38,9 @@ namespace shared_model {
                                                      FieldValidator,
                                                      TransactionValidator> {
      public:
+      using ContainerValidator<interface::Block,
+                               FieldValidator,
+                               TransactionValidator>::ContainerValidator;
       /**
        * Applies validation on block
        * @param block
