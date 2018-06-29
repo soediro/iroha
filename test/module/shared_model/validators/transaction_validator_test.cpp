@@ -52,8 +52,7 @@ TEST_F(TransactionValidatorTest, EmptyTransactionTest) {
       created_time);
   shared_model::validation::DefaultTransactionValidator transaction_validator;
   auto result = proto::Transaction(iroha::protocol::Transaction(tx));
-  auto answer =
-     transaction_validator.validate(result);
+  auto answer = transaction_validator.validate(result);
   ASSERT_EQ(answer.getReasonsMap().size(), 1);
 }
 
@@ -64,7 +63,8 @@ TEST_F(TransactionValidatorTest, EmptyTransactionTest) {
  */
 TEST_F(TransactionValidatorTest, InvalidCreateRolePermission) {
   auto tx = generateEmptyTransaction();
-  tx.mutable_payload()->mutable_reduced_payload()->set_created_time(created_time);
+  tx.mutable_payload()->mutable_reduced_payload()->set_created_time(
+      created_time);
   iroha::protocol::Command cmd;
   cmd.mutable_create_role()->set_role_name("role");
   cmd.mutable_create_role()->add_permissions(
