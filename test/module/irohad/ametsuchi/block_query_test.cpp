@@ -21,12 +21,16 @@
 #include "ametsuchi/impl/postgres_block_query.hpp"
 #include "converters/protobuf/json_proto_converter.hpp"
 #include "framework/test_subscriber.hpp"
+#include "framework/result_fixture.hpp"
 #include "module/irohad/ametsuchi/ametsuchi_fixture.hpp"
+#include "module/irohad/ametsuchi/ametsuchi_mocks.hpp"
 #include "module/shared_model/builders/protobuf/test_block_builder.hpp"
 #include "module/shared_model/builders/protobuf/test_transaction_builder.hpp"
 
 using namespace iroha::ametsuchi;
 using namespace framework::test_subscriber;
+
+using testing::Return;
 
 class BlockQueryTest : public AmetsuchiTest {
  protected:
@@ -36,10 +40,13 @@ class BlockQueryTest : public AmetsuchiTest {
     auto tmp = FlatFile::create(block_store_path);
     ASSERT_TRUE(tmp);
     file = std::move(*tmp);
+    mock_file = std::make_shared<MockKeyValueStorage>();
     sql = std::make_unique<soci::session>(soci::postgresql, pgopt_);
 
     index = std::make_shared<PostgresBlockIndex>(*sql);
     blocks = std::make_shared<PostgresBlockQuery>(*sql, *file);
+    empty_blocks =
+        std::make_shared<PostgresBlockQuery>(*sql, *mock_file);
 
     *sql << init_;
 
@@ -87,8 +94,10 @@ class BlockQueryTest : public AmetsuchiTest {
   std::unique_ptr<soci::session> sql;
   std::vector<shared_model::crypto::Hash> tx_hashes;
   std::shared_ptr<BlockQuery> blocks;
+  std::shared_ptr<BlockQuery> empty_blocks;
   std::shared_ptr<BlockIndex> index;
   std::unique_ptr<FlatFile> file;
+  std::shared_ptr<MockKeyValueStorage> mock_file;
   std::string creator1 = "user1@test";
   std::string creator2 = "user2@test";
   std::size_t blocks_total{0};
@@ -380,4 +389,30 @@ TEST_F(BlockQueryTest, HasTxWithExistingHash) {
 TEST_F(BlockQueryTest, HasTxWithInvalidHash) {
   shared_model::crypto::Hash invalid_tx_hash(zero_string);
   EXPECT_FALSE(blocks->hasTxWithHash(invalid_tx_hash));
+}
+
+/**
+ * @given block store with preinserted blocks
+ * @when getTopBlock is invoked on this block store
+ * @then returned top block's height is equal to the inserted one's
+ */
+TEST_F(BlockQueryTest, GetTopBlockSuccess) {
+  auto top_block_opt = framework::expected::val(blocks->getTopBlock());
+  ASSERT_TRUE(top_block_opt);
+  ASSERT_EQ(top_block_opt.value().value->height(), 2);
+}
+
+/**
+ * @given empty block store
+ * @when getTopBlock is invoked on this block store
+ * @then result must be a string error, because no block was fetched
+ */
+TEST_F(BlockQueryTest, GetTopBlockFail) {
+  EXPECT_CALL(*mock_file, last_id()).WillRepeatedly(Return(0));
+  EXPECT_CALL(*mock_file, get(mock_file->last_id()))
+      .WillOnce(Return(boost::none));
+
+  auto top_block_error = framework::expected::err(empty_blocks->getTopBlock());
+  ASSERT_TRUE(top_block_error);
+  ASSERT_EQ(top_block_error.value().error, "error while fetching the last block");
 }

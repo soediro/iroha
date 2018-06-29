@@ -81,40 +81,18 @@ namespace iroha {
     WsvCommandResult PostgresWsvCommand::insertRolePermissions(
         const shared_model::interface::types::RoleIdType &role_id,
         const shared_model::interface::RolePermissionSet &permissions) {
-      auto entry = [&role_id](auto permission) {
-        return "('" + role_id + "', '" + permission + "')";
-      };
-
-      // generate string with all permissions,
-      // applying transform_func to each permission
-      auto generate_perm_string = [&permissions](auto transform_func) {
-        std::string s;
-        permissions.iterate([&](auto perm) {
-          s += transform_func(shared_model::proto::permissions::toString(perm))
-              + ',';
-        });
-        if (s.size() > 0) {
-          // remove last comma
-          s.resize(s.size() - 1);
-        }
-        return s;
-      };
-      std::string params = generate_perm_string(entry);
-      std::cout << "insertRolePermissions(" << role_id << ", " << params << ")"
+      auto perm_str = permissions.toBitstring();
+      std::cout << "insertRolePermissions(" << role_id << ", " << perm_str << ")"
                 << std::endl;
       try {
-        std::string query =
-            "INSERT INTO role_has_permissions(role_id, permission) VALUES ";
-        query += generate_perm_string(entry);
-        std::cout << query << std::endl;
-        sql_ << query;
+        sql_ << "INSERT INTO role_has_permissions(role_id, permission) VALUES (:id, :perm)", soci::use(role_id), soci::use(perm_str);
         return {};
       } catch (const std::exception &e) {
         return expected::makeError(
             (boost::format("failed to insert role permissions, role "
                            "id: '%s', %s, permissions: [%s]")
              % role_id % e.what()
-             % generate_perm_string([](auto a) { return a; }))
+             % perm_str)
                 .str());
       }
     }
@@ -124,16 +102,20 @@ namespace iroha {
             &permittee_account_id,
         const shared_model::interface::types::AccountIdType &account_id,
         shared_model::interface::permissions::Grantable permission) {
-      std::string perm = shared_model::proto::permissions::toString(permission);
+      const auto perm_str =
+          shared_model::interface::GrantablePermissionSet({permission})
+              .toBitstring();
       std::cout << "insertAccountGrantablePermission(" << account_id << ", "
-                << perm << ")" << std::endl;
+                << perm_str << ")" << std::endl;
       try {
-        sql_ << "INSERT INTO "
-                "account_has_grantable_permissions(permittee_account_id, "
-                "account_id, permission) VALUES (:permittee_account_id, "
-                ":account_id, :permission)",
-            soci::use(permittee_account_id), soci::use(account_id),
-            soci::use(perm);
+        sql_ << "INSERT INTO account_has_grantable_permissions as "
+            "has_perm(permittee_account_id, account_id, permission) VALUES "
+            "(:permittee_account_id, :, :account_id) ON CONFLICT (permittee_account_id, account_id) "
+            // SELECT will end up with a error, if the permission exists
+            "DO UPDATE SET permission=(SELECT has_perm.permission | :perm "
+            "WHERE (has_perm.permission & :perm) <> :perm);",
+            soci::use(permittee_account_id, "permittee_account_id"), soci::use(account_id, "account_id"),
+            soci::use(perm_str, "perm");
         return {};
       } catch (const std::exception &e) {
         return expected::makeError(
@@ -143,6 +125,7 @@ namespace iroha {
                            "permission: '%s',"
                            "error: %s")
              % permittee_account_id % account_id
+            // TODO(@l4l) 26/06/18 need to be simplified at IR-1479
              % shared_model::proto::permissions::toString(permission)
              % e.what())
                 .str());
@@ -157,12 +140,20 @@ namespace iroha {
       std::cout << "deleteAccountGrantablePermission(" << account_id << ", "
                 << shared_model::proto::permissions::toString(permission) << ")"
                 << std::endl;
+      const auto perm_str = shared_model::interface::GrantablePermissionSet()
+          .set()
+          .unset(permission)
+          .toBitstring();
+
       try {
-        sql_ << "DELETE FROM public.account_has_grantable_permissions WHERE "
-                "permittee_account_id=:permittee_account_id AND "
-                "account_id=:account_id AND permission=:permission",
-            soci::use(permittee_account_id), soci::use(account_id),
-            soci::use(shared_model::proto::permissions::toString(permission));
+        sql_ << "UPDATE account_has_grantable_permissions as has_perm "
+            // SELECT will end up with a error, if the permission
+            // doesn't exists
+            "SET permission=(SELECT has_perm.permission & :perm "
+            "WHERE has_perm.permission & :perm = :perm) WHERE "
+            "permittee_account_id=:permittee_account_id AND account_id=:account_id;",
+            soci::use(permittee_account_id, "permittee_account_id"), soci::use(account_id, "account_id"),
+            soci::use(perm_str, "perm");
         return {};
       } catch (const std::exception &e) {
         return expected::makeError(

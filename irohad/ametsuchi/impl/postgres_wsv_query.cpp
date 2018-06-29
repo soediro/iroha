@@ -16,7 +16,6 @@
  */
 
 #include "ametsuchi/impl/postgres_wsv_query.hpp"
-#include "backend/protobuf/from_old.hpp"
 #include "backend/protobuf/permissions.hpp"
 
 namespace iroha {
@@ -48,23 +47,26 @@ namespace iroha {
         const AccountIdType &permitee_account_id,
         const AccountIdType &account_id,
         shared_model::interface::permissions::Grantable permission) {
-      if (permission
-          == shared_model::interface::permissions::Grantable::COUNT) {
-        auto perm = shared_model::proto::permissions::toString(permission);
-        return false;
-      }
+      const auto perm_str =
+          shared_model::interface::GrantablePermissionSet({permission})
+              .toBitstring();
+
+//      if (permission
+//          == shared_model::interface::permissions::Grantable::COUNT) {
+//        auto perm = shared_model::proto::permissions::toString(permission);
+//        return false;
+//      }
       std::cout << "hasAccountGrantablePermission(" << permitee_account_id
                 << ", " << account_id << ", "
-                << shared_model::proto::permissions::toString(permission) << ")"
+                << perm_str << ")"
                 << std::endl;
       int size;
-      auto perm = shared_model::proto::permissions::toString(permission);
       sql_ << "SELECT count(*) FROM account_has_grantable_permissions WHERE "
               "permittee_account_id = :permittee_account_id AND account_id = "
               ":account_id "
-              " AND permission = :permission ",
-          soci::into(size), soci::use(permitee_account_id),
-          soci::use(account_id), soci::use(perm);
+              " AND permission & :permission = :permission ",
+          soci::into(size), soci::use(permitee_account_id, "permitee_account_id"),
+          soci::use(account_id, "account_id"), soci::use(perm_str, "permission");
       return size == 1;
     }
 
@@ -110,14 +112,13 @@ namespace iroha {
       while (st.fetch()) {
         switch (ind) {
           case soci::i_ok:
-            set.set(shared_model::interface::permissions::fromOldR(row));
-            break;
+            return shared_model::interface::RolePermissionSet(row);
           case soci::i_null:
           case soci::i_truncated:
             break;
         }
       }
-      return set;
+      return shared_model::interface::RolePermissionSet();
     }
 
     boost::optional<std::vector<RoleIdType>> PostgresWsvQuery::getRoles() {
