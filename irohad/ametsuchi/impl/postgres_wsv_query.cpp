@@ -65,7 +65,7 @@ namespace iroha {
               "permittee_account_id = :permittee_account_id AND account_id = "
               ":account_id "
               " AND permission & :permission = :permission ",
-          soci::into(size), soci::use(permitee_account_id, "permitee_account_id"),
+          soci::into(size), soci::use(permitee_account_id, "permittee_account_id"),
           soci::use(account_id, "account_id"), soci::use(perm_str, "permission");
       return size == 1;
     }

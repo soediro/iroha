@@ -110,7 +110,7 @@ namespace iroha {
       try {
         sql_ << "INSERT INTO account_has_grantable_permissions as "
             "has_perm(permittee_account_id, account_id, permission) VALUES "
-            "(:permittee_account_id, :, :account_id) ON CONFLICT (permittee_account_id, account_id) "
+            "(:permittee_account_id, :account_id, :perm) ON CONFLICT (permittee_account_id, account_id) "
             // SELECT will end up with a error, if the permission exists
             "DO UPDATE SET permission=(SELECT has_perm.permission | :perm "
             "WHERE (has_perm.permission & :perm) <> :perm);",
