@@ -50,14 +50,20 @@ class GetAccountAssets : public AcceptanceFixture {
     return complete(baseQry().queryCounter(1).getAccountAssets(kUserId));
   }
 
-  const std::string kNewRole = "rl";
-};
+  static auto checkAccountAssets(int quantity) {
+    return
+        [quantity](const shared_model::proto::QueryResponse &query_response) {
+          ASSERT_NO_THROW({
+            const auto &resp = boost::apply_visitor(
+                framework::SpecifiedVisitor<interface::AccountAssetResponse>(),
+                query_response.get());
 
-/// Callback for checking that status is AccountAssetResponse
-auto checkValid = [](auto &status) {
-  ASSERT_NO_THROW(boost::apply_visitor(
-      framework::SpecifiedVisitor<interface::AccountAssetResponse>(),
-      status.get()));
+            ASSERT_EQ(resp.accountAssets().size(), quantity);
+          });
+        };
+  }
+
+  const std::string kNewRole = "rl";
 };
 
 /**
@@ -66,6 +72,8 @@ auto checkValid = [](auto &status) {
  * @then there is an AccountAssetResponse
  */
 TEST_F(GetAccountAssets, AddedAssets) {
+  auto check_single_asset = checkAccountAssets(1);
+
   IntegrationTestFramework(1)
       .setInitialState(kAdminKeypair)
       .sendTx(makeUserWithPerms())
@@ -74,7 +82,7 @@ TEST_F(GetAccountAssets, AddedAssets) {
       .sendTx(addAssets())
       .checkBlock(
           [](auto &block) { ASSERT_EQ(block->transactions().size(), 1); })
-      .sendQuery(makeQuery(), checkValid)
+      .sendQuery(makeQuery(), check_single_asset)
       .done();
 }
 
@@ -84,6 +92,8 @@ TEST_F(GetAccountAssets, AddedAssets) {
  * @then there is an AccountAssetResponse
  */
 TEST_F(GetAccountAssets, RemovedAssets) {
+  auto check_single_asset = checkAccountAssets(1);
+
   IntegrationTestFramework(1)
       .setInitialState(kAdminKeypair)
       .sendTx(makeUserWithPerms())
@@ -95,7 +105,7 @@ TEST_F(GetAccountAssets, RemovedAssets) {
       .sendTx(removeAssets())
       .checkBlock(
           [](auto &block) { ASSERT_EQ(block->transactions().size(), 1); })
-      .sendQuery(makeQuery(), checkValid)
+      .sendQuery(makeQuery(), check_single_asset)
       .done();
 }
 
@@ -105,11 +115,13 @@ TEST_F(GetAccountAssets, RemovedAssets) {
  * @then there is an AccountAssetResponse
  */
 TEST_F(GetAccountAssets, NonAddedAssets) {
+  auto check_zero_assets = checkAccountAssets(0);
+
   IntegrationTestFramework(1)
       .setInitialState(kAdminKeypair)
       .sendTx(makeUserWithPerms())
       .skipProposal()
       .skipBlock()
-      .sendQuery(makeQuery(), checkValid)
+      .sendQuery(makeQuery(), check_zero_assets)
       .done();
 }
