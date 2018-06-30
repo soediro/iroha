@@ -1968,16 +1968,13 @@ class DetachRoleTest : public CommandValidateExecuteTest {
  */
 TEST_F(DetachRoleTest, ValidCase) {
   EXPECT_CALL(*wsv_query, getAccountRoles(kAdminId))
-      .WillOnce(Return(admin_roles));
+      .Times(2)
+      .WillRepeatedly(Return(admin_roles));
   EXPECT_CALL(*wsv_query, getAccountRoles(kAccountId))
       .WillOnce(Return(role_list));
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
-      .Times(2)
+      .Times(3)
       .WillRepeatedly(Return(role_permissions));
-  EXPECT_CALL(*wsv_query, getRolePermissions(kDummyRole1))
-      .WillOnce(Return(role_permissions));
-  EXPECT_CALL(*wsv_query, getRolePermissions(kDummyRole2))
-      .WillOnce(Return(role_permissions));
   EXPECT_CALL(
       *wsv_command,
       deleteAccountRole(detach_role->accountId(), detach_role->roleName()))
@@ -2015,7 +2012,8 @@ TEST_F(DetachRoleTest, InvalidCaseWhenDeleteAccountRoleFails) {
 
 TEST_F(DetachRoleTest, InvalidCaseWhenLastRole) {
   EXPECT_CALL(*wsv_query, getAccountRoles(kAdminId))
-      .WillOnce(Return(admin_roles));
+      .Times(2)
+      .WillRepeatedly(Return(admin_roles));
   EXPECT_CALL(*wsv_query, getAccountRoles(kAccountId))
       .WillOnce(Return(std::vector<std::string>{kDummyRole1}));
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
