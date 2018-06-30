@@ -6,6 +6,8 @@
 #include <gtest/gtest.h>
 #include <memory>
 
+#include "builders/protobuf/transaction.hpp"
+#include "datetime/time.hpp"
 #include "ordering/impl/on_demand_ordering_service_impl.hpp"
 
 using namespace iroha;
@@ -33,7 +35,18 @@ class OnDemandOsTest : public ::testing::Test {
       OnDemandOrderingService &os, std::pair<uint64_t, uint64_t> range) {
     OnDemandOrderingService::CollectionType collection;
     for (auto i = range.first; i < range.second; ++i) {
-      collection.push_back(nullptr);
+      auto tx = shared_model::proto::TransactionBuilder()
+                    .createdTime(iroha::time::now())
+                    .creatorAccountId("admin@ru")
+                    .addAssetQuantity("admin@tu", "coin#coin", "1.0")
+                    .quorum(1)
+                    .build()
+                    .signAndAddSignature(
+                        shared_model::crypto::DefaultCryptoAlgorithmType::
+                            generateKeypair())
+                    .finish();
+      collection.push_back(
+          std::make_shared<shared_model::proto::Transaction>(tx));
     }
     os.onTransactions(collection);
   }

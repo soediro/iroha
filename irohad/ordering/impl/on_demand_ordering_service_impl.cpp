@@ -26,11 +26,12 @@ OnDemandOrderingServiceImpl::OnDemandOrderingServiceImpl(
 
 void OnDemandOrderingServiceImpl::onCollaborationOutcome(
     RoundOutput outcome, transport::RoundType round) {
-  log_->info(
+  log_->debug(
       "onCollaborationOutcome => round[{}, {}]", round.first, round.second);
   // exclusive write lock
   boost::upgrade_lock<boost::shared_mutex> upgrade_lock(lock_);
   boost::upgrade_to_unique_lock<boost::shared_mutex> guard(upgrade_lock);
+  log_->debug("onCollaborationOutcome => write lock is acquired");
 
   packNextProposal(outcome, round);
   tryErase();
@@ -42,11 +43,14 @@ void OnDemandOrderingServiceImpl::onTransactions(
     const CollectionType &transactions) {
   // read lock
   boost::shared_lock<boost::shared_mutex> guard(lock_);
+  log_->info("onTransactions => collections size = {}", transactions.size());
 
   std::for_each(
       transactions.begin(), transactions.end(), [this](const auto &obj) {
+        log_->debug("psuh object");
         current_proposal_.second.push(obj);
       });
+  log_->debug("onTransactions => collection is inserted");
 }
 
 boost::optional<OnDemandOrderingServiceImpl::ProposalType>
@@ -65,6 +69,7 @@ OnDemandOrderingServiceImpl::onRequestProposal(transport::RoundType round) {
 
 void OnDemandOrderingServiceImpl::packNextProposal(
     RoundOutput outcome, const transport::RoundType &last_round) {
+  log_->debug("pack next proposal...");
   if (not current_proposal_.second.empty()) {
     proposal_map_.insert(
         std::make_pair(current_proposal_.first, emitProposal()));
@@ -72,6 +77,7 @@ void OnDemandOrderingServiceImpl::packNextProposal(
   }
 
   round_queue_.push(current_proposal_.first);
+  log_->debug("packNextProposal: pushed in queue");
 
   auto current_round = current_proposal_.first;
   decltype(current_round) next_round;
@@ -96,6 +102,7 @@ OnDemandOrderingServiceImpl::emitProposal() {
   auto mutable_proposal = shared_model::proto::ProposalBuilder()
                               .height(current_proposal_.first.first)
                               .createdTime(iroha::time::now());
+  log_->debug("Mutable proposal created");
 
   TransactionType current_tx;
   using ProtoTxType = shared_model::proto::Transaction;
@@ -110,7 +117,7 @@ OnDemandOrderingServiceImpl::emitProposal() {
   auto proto_txes = collection | boost::adaptors::transformed([](auto &tx) {
                       return static_cast<const ProtoTxType &>(*tx);
                     });
-
+  log_->debug("Number of transaction in proposal  = {}", collection.size());
   return std::make_shared<decltype(mutable_proposal.build())>(
       mutable_proposal.transactions(proto_txes).build());
 }
