@@ -6,8 +6,8 @@
 import iroha
 import commons
 
-admin = commons.user('admin@first')
-alice = commons.user('alice@second')
+admin = commons.new_user('admin@first')
+alice = commons.new_user('alice@second')
 
 admin_tx1_hash = None
 admin_tx2_hash_blob = None

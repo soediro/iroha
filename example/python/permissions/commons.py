@@ -59,7 +59,7 @@ def all_permissions():
     ])
 
 
-def user(user_id):
+def new_user(user_id):
     return {
         'id': user_id,
         'key': iroha.ModelCrypto().generateKeypair()

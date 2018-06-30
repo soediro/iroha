@@ -6,9 +6,9 @@
 import iroha
 import commons
 
-admin = commons.user('admin@test')
-alice = commons.user('alice@test')
-bob = commons.user('bob@test')
+admin = commons.new_user('admin@test')
+alice = commons.new_user('alice@test')
+bob = commons.new_user('bob@test')
 
 
 def genesis_tx():

@@ -6,8 +6,8 @@
 import iroha
 import commons
 
-admin = commons.user('admin@test')
-alice = commons.user('alice@test')
+admin = commons.new_user('admin@test')
+alice = commons.new_user('alice@test')
 
 def genesis_tx():
     test_permissions = iroha.RolePermissionSet([iroha.Role_kGetDomainSignatories])
