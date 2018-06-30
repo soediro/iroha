@@ -14,6 +14,8 @@
 #include <tbb/concurrent_queue.h>
 #include <boost/thread.hpp>
 
+#include "logger/logger.hpp"
+
 namespace iroha {
   namespace ordering {
     class OnDemandOrderingServiceImpl : public OnDemandOrderingService {
@@ -21,7 +23,7 @@ namespace iroha {
       OnDemandOrderingServiceImpl(
           size_t transaction_limit,
           size_t number_of_proposals = 3,
-          const transport::RoundType &initial_round = std::make_pair(2, 1));
+          const transport::RoundType &initial_round = std::make_pair(1, 1));
 
       // --------------------- | OnDemandOrderingService |_---------------------
 
@@ -30,9 +32,7 @@ namespace iroha {
 
       // ----------------------- | OdOsNotification | --------------------------
 
-      void onTransactions(const std::vector<
-                          std::shared_ptr<shared_model::interface::Transaction>>
-                              &transactions) override;
+      void onTransactions(const CollectionType &transactions) override;
 
       boost::optional<ProposalType> onRequestProposal(
           transport::RoundType round) override;
@@ -97,6 +97,12 @@ namespace iroha {
        * Lock for onCollaborationOutcome critical section
        */
       boost::shared_mutex lock_;
+
+      /**
+       * Logger instance
+       */
+      logger::Logger log_;
+
     };
   }  // namespace ordering
 }  // namespace iroha

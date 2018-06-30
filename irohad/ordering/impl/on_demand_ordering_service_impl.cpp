@@ -19,12 +19,15 @@ OnDemandOrderingServiceImpl::OnDemandOrderingServiceImpl(
     : transaction_limit_(transaction_limit),
       number_of_proposals_(number_of_proposals),
       current_proposal_(std::make_pair(
-          initial_round, tbb::concurrent_queue<TransactionType>())) {}
+          initial_round, tbb::concurrent_queue<TransactionType>())),
+      log_(logger::log("OnDemandOrderingServiceImpl")) {}
 
 // -------------------------| OnDemandOrderingService |-------------------------
 
 void OnDemandOrderingServiceImpl::onCollaborationOutcome(
     RoundOutput outcome, transport::RoundType round) {
+  log_->info(
+      "onCollaborationOutcome => round[{}, {}]", round.first, round.second);
   // exclusive write lock
   boost::upgrade_lock<boost::shared_mutex> upgrade_lock(lock_);
   boost::upgrade_to_unique_lock<boost::shared_mutex> guard(upgrade_lock);
@@ -36,8 +39,7 @@ void OnDemandOrderingServiceImpl::onCollaborationOutcome(
 // ----------------------------| OdOsNotification |-----------------------------
 
 void OnDemandOrderingServiceImpl::onTransactions(
-    const std::vector<std::shared_ptr<shared_model::interface::Transaction>>
-        &transactions) {
+    const CollectionType &transactions) {
   // read lock
   boost::shared_lock<boost::shared_mutex> guard(lock_);
 
@@ -63,12 +65,13 @@ OnDemandOrderingServiceImpl::onRequestProposal(transport::RoundType round) {
 
 void OnDemandOrderingServiceImpl::packNextProposal(
     RoundOutput outcome, const transport::RoundType &last_round) {
-  if (current_proposal_.second.empty()) {
-    return;
+  if (not current_proposal_.second.empty()) {
+    proposal_map_.insert(
+        std::make_pair(current_proposal_.first, emitProposal()));
+    log_->info("packNextProposal: data has been fetched");
   }
 
   round_queue_.push(current_proposal_.first);
-  proposal_map_.insert(std::make_pair(current_proposal_.first, emitProposal()));
 
   auto current_round = current_proposal_.first;
   decltype(current_round) next_round;
@@ -81,6 +84,8 @@ void OnDemandOrderingServiceImpl::packNextProposal(
           std::make_pair(current_round.first, current_round.second + 1);
       break;
   }
+
+  log_->info("nextRound is: [{}, {}]", next_round.first, next_round.second);
 
   current_proposal_.first = next_round;
   current_proposal_.second.clear();  // operator = of tbb::queue is closed
