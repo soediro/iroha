@@ -37,7 +37,7 @@ namespace shared_model {
      */
     class FieldValidator {
      private:
-      using TimeFunction = std::function<time_t()>;
+      using TimeFunction = std::function<iroha::ts64_t()>;
 
      public:
       FieldValidator(time_t future_gap = kDefaultFutureGap,
@@ -183,7 +183,7 @@ namespace shared_model {
 
      public:
       // max-delay between tx creation and validation
-      static constexpr auto max_delay =
+      static constexpr auto kMaxDelay =
           std::chrono::hours(24) / std::chrono::milliseconds(1);
       // default value for future_gap field of FieldValidator
       static constexpr auto kDefaultFutureGap =

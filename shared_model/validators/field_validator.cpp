@@ -286,7 +286,7 @@ namespace shared_model {
         reason.second.push_back(std::move(message));
       }
 
-      if (now > max_delay + timestamp) {
+      if (now > kMaxDelay + timestamp) {
         auto message =
             (boost::format("bad timestamp: too old, timestamp: %llu, now: %llu")
              % timestamp % now)
