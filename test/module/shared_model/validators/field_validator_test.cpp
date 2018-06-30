@@ -273,8 +273,8 @@ class FieldValidatorTest : public ValidatorsTest {
        ""},
       {"zero_amount",
        [&] { amount.mutable_value()->set_fourth(0); },
-       false,
-       "Amount must be greater than 0, passed value: 0"}};
+       true,
+       ""}};
 
   /**
    * Make test case for invalid peer address.

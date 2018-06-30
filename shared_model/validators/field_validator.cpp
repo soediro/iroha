@@ -106,7 +106,7 @@ namespace shared_model {
 
     void FieldValidator::validateAmount(ReasonsGroupType &reason,
                                         const interface::Amount &amount) const {
-      if (amount.intValue() <= 0) {
+      if (amount.intValue() < 0) {
         auto message =
             (boost::format("Amount must be greater than 0, passed value: %d")
              % amount.intValue())
