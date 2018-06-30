@@ -1056,11 +1056,19 @@ namespace iroha {
       const shared_model::interface::types::AccountIdType &creator_account_id) {
     auto command_name = "DetachRole";
     auto role_permissions = queries.getRolePermissions(command.roleName());
-    auto account_roles = queries.getAccountRoles(creator_account_id);
+    auto account_roles = queries.getAccountRoles(command.accountId());
 
-    if (not role_permissions or not account_roles
-        or account_roles->size() == 1) {
-      return makeCommandError("The last role cannot be detached", command_name);
+    if (not role_permissions or not account_roles) {
+      return makeCommandError(
+          "is valid command validation failed: unable to query roles info",
+          command_name);
+    }
+
+    if (account_roles->size() == 1) {
+      return makeCommandError(
+          "is valid command validation failed: the last role cannot be "
+          "detached",
+          command_name);
     }
 
     shared_model::interface::RolePermissionSet account_permissions{};
