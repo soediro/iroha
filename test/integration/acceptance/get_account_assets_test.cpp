@@ -91,7 +91,7 @@ TEST_F(GetAccountAssets, AddedAssets) {
  * @when GetAccountAssets is queried on the user
  * @then there is an AccountAssetResponse
  */
-TEST_F(GetAccountAssets, RemovedAssets) {
+TEST_F(GetAccountAssets, DISABLED_RemovedAssets) {
   auto check_single_asset = checkAccountAssets(1);
 
   IntegrationTestFramework(1)
