@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <memory>
+#include <thread>
 
 #include "builders/protobuf/transaction.hpp"
 #include "datetime/time.hpp"
@@ -103,7 +104,30 @@ TEST_F(OnDemandOsTest, OverflowRound) {
  * AND initiate next round
  * @then  check that all transactions are appeared in proposal
  */
-TEST_F(OnDemandOsTest, ConcurrentInsert) {}
+TEST_F(OnDemandOsTest, ConcurrentInsert) {
+  auto large_tx_limit = 10000u;
+  auto concurrent_os = std::make_shared<OnDemandOrderingServiceImpl>(
+      large_tx_limit, proposal_limit, target_round);
+
+  auto call = [&concurrent_os](auto bounds) {
+    for (auto i = bounds.first; i < bounds.second; ++i) {
+      generateTransactionsAndInsert(*concurrent_os, std::make_pair(i, i + 1));
+    }
+  };
+
+  //  call(os, std::make_pair(0u, large_tx_limit / 2));
+
+  std::thread one(call, std::make_pair(0u, large_tx_limit / 2));
+  std::thread two(call, std::make_pair(large_tx_limit / 2, large_tx_limit));
+  one.join();
+  two.join();
+  concurrent_os->onCollaborationOutcome(RoundOutput::SUCCESSFUL, target_round);
+  ASSERT_EQ(large_tx_limit,
+            concurrent_os->onRequestProposal(target_round)
+                .get()
+                ->transactions()
+                .size());
+}
 
 /**
  * @given initialized on-demand OS
@@ -119,7 +143,8 @@ TEST_F(OnDemandOsTest, Erase) {
     ASSERT_TRUE(os->onRequestProposal({i, 1}));
   }
 
-  for (uint64_t i = proposal_limit + 1, j = 1; i < 2 * proposal_limit; ++i, ++j) {
+  for (uint64_t i = proposal_limit + 1, j = 1; i < 2 * proposal_limit;
+       ++i, ++j) {
     generateTransactionsAndInsert(*os, {1, proposal_limit});
     ASSERT_FALSE(os->onRequestProposal({i, 1}));
     os->onCollaborationOutcome(RoundOutput::SUCCESSFUL, round);

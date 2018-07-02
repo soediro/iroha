@@ -68,7 +68,8 @@ OnDemandOrderingServiceImpl::onRequestProposal(transport::RoundType round) {
 
 void OnDemandOrderingServiceImpl::packNextProposal(
     RoundOutput outcome, const transport::RoundType &last_round) {
-  log_->info("pack next proposal...");
+  log_->info("pack next proposal...size of queue = {}",
+             current_proposal_.second.unsafe_size());
   if (not current_proposal_.second.empty()) {
     proposal_map_.insert(
         std::make_pair(current_proposal_.first, emitProposal()));
