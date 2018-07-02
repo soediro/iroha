@@ -50,16 +50,6 @@ namespace iroha {
       const auto perm_str =
           shared_model::interface::GrantablePermissionSet({permission})
               .toBitstring();
-
-//      if (permission
-//          == shared_model::interface::permissions::Grantable::COUNT) {
-//        auto perm = shared_model::proto::permissions::toString(permission);
-//        return false;
-//      }
-      std::cout << "hasAccountGrantablePermission(" << permitee_account_id
-                << ", " << account_id << ", "
-                << perm_str << ")"
-                << std::endl;
       int size;
       sql_ << "SELECT count(*) FROM account_has_grantable_permissions WHERE "
               "permittee_account_id = :permittee_account_id AND account_id = "
@@ -72,7 +62,6 @@ namespace iroha {
 
     boost::optional<std::vector<RoleIdType>> PostgresWsvQuery::getAccountRoles(
         const AccountIdType &account_id) {
-      std::cout << "getAccountRoles(" << account_id << ")" << std::endl;
       std::vector<RoleIdType> roles;
       soci::indicator ind;
       std::string row;
@@ -98,7 +87,6 @@ namespace iroha {
 
     boost::optional<shared_model::interface::RolePermissionSet>
     PostgresWsvQuery::getRolePermissions(const RoleIdType &role_name) {
-      std::cout << "getRolePermissions(" << role_name << ")" << std::endl;
       shared_model::interface::RolePermissionSet set;
       soci::indicator ind;
       std::string row;
@@ -135,7 +123,6 @@ namespace iroha {
     PostgresWsvQuery::getAccount(const AccountIdType &account_id) {
       boost::optional<std::string> domain_id, data;
       boost::optional<shared_model::interface::types::QuorumType> quorum;
-      std::cout << "getAccount(" << account_id << ")" << std::endl;
       sql_ << "SELECT domain_id, quorum, data FROM account WHERE account_id = "
               ":account_id",
           soci::into(domain_id), soci::into(quorum), soci::into(data),
@@ -151,7 +138,6 @@ namespace iroha {
 
     boost::optional<std::string> PostgresWsvQuery::getAccountDetail(
         const std::string &account_id) {
-      std::cout << "getAccountDetail(" << account_id << ")" << std::endl;
       boost::optional<std::string> detail;
 
       sql_ << "SELECT data FROM account WHERE account_id = :account_id",
@@ -162,7 +148,6 @@ namespace iroha {
 
     boost::optional<std::vector<PubkeyType>> PostgresWsvQuery::getSignatories(
         const AccountIdType &account_id) {
-      std::cout << "getSignatories(" << account_id << ")" << std::endl;
       std::vector<PubkeyType> pubkeys;
       soci::indicator ind;
       std::string row;
@@ -208,7 +193,6 @@ namespace iroha {
     boost::optional<
         std::vector<std::shared_ptr<shared_model::interface::AccountAsset>>>
     PostgresWsvQuery::getAccountAssets(const AccountIdType &account_id) {
-      std::cout << "getAccountAssets(" << account_id << ")" << std::endl;
       soci::indicator ind;
       soci::row row;
       soci::statement st = (sql_.prepare << "SELECT * FROM account_has_asset "
@@ -241,8 +225,6 @@ namespace iroha {
     boost::optional<std::shared_ptr<shared_model::interface::AccountAsset>>
     PostgresWsvQuery::getAccountAsset(const AccountIdType &account_id,
                                       const AssetIdType &asset_id) {
-      std::cout << "getAccountAsset(" << account_id << ", " << asset_id << ")"
-                << std::endl;
       boost::optional<std::string> amount;
       sql_ << "SELECT amount FROM account_has_asset WHERE account_id = "
               ":account_id AND asset_id = :asset_id",
@@ -257,7 +239,6 @@ namespace iroha {
 
     boost::optional<std::shared_ptr<shared_model::interface::Domain>>
     PostgresWsvQuery::getDomain(const DomainIdType &domain_id) {
-      std::cout << "getDomain(" << domain_id << ")" << std::endl;
       boost::optional<std::string> role;
       sql_ << "SELECT default_role FROM domain WHERE domain_id = :id LIMIT 1",
           soci::into(role), soci::use(domain_id);
@@ -271,7 +252,6 @@ namespace iroha {
 
     boost::optional<std::vector<std::shared_ptr<shared_model::interface::Peer>>>
     PostgresWsvQuery::getPeers() {
-      std::cout << "getPeers()" << std::endl;
       soci::rowset<soci::row> rows =
           (sql_.prepare << "SELECT public_key, address FROM peer");
       std::vector<std::shared_ptr<shared_model::interface::Peer>> peers;
