@@ -19,7 +19,7 @@
 #include <memory>
 #include <unordered_set>
 
-#include <block.pb.h>
+#include "block.pb.h"
 #include <gmock/gmock-matchers.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/dynamic_message.h>

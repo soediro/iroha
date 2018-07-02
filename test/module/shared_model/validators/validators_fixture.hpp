@@ -119,7 +119,7 @@ class ValidatorsTest : public ::testing::Test {
       validator();
     });
   }
-  // TODO: Rewrite interator for all containters
+  // TODO: IR-1490 02.07.2018 Rewrite interator for all containters
   /**
    * Iterate the container recursively (transaction or query),
    * generating concrete subtypes
