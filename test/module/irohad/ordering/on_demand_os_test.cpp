@@ -39,8 +39,7 @@ class OnDemandOsTest : public ::testing::Test {
       collection.push_back(std::make_shared<shared_model::proto::Transaction>(
           shared_model::proto::TransactionBuilder()
               .createdTime(iroha::time::now())
-              .creatorAccountId("admin@ru")
-              .addAssetQuantity("admin@tu", "coin#coin", "1.0")
+              .creatorAccountId("foo@bar")
               .quorum(1)
               .build()
               .signAndAddSignature(
@@ -115,8 +114,6 @@ TEST_F(OnDemandOsTest, ConcurrentInsert) {
     }
   };
 
-  //  call(os, std::make_pair(0u, large_tx_limit / 2));
-
   std::thread one(call, std::make_pair(0u, large_tx_limit / 2));
   std::thread two(call, std::make_pair(large_tx_limit / 2, large_tx_limit));
   one.join();
@@ -131,8 +128,8 @@ TEST_F(OnDemandOsTest, ConcurrentInsert) {
 
 /**
  * @given initialized on-demand OS
- * @when  initiate rounds with successful and reject
- * @then  check that old
+ * @when  insert proposal_limit rounds twice
+ * @then  on second rounds check that old proposals are expired
  */
 TEST_F(OnDemandOsTest, Erase) {
   auto round = target_round;
