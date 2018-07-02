@@ -69,7 +69,7 @@ TEST_F(TransactionValidatorTest, InvalidCreateRolePermission) {
   cmd.mutable_create_role()->set_role_name("role");
   cmd.mutable_create_role()->add_permissions(
       static_cast<iroha::protocol::RolePermission>(-1));
-  *tx.mutable_payload()->add_commands() = std::move(cmd);
+  *tx.mutable_payload()->mutable_reduced_payload()->add_commands() = std::move(cmd);
   shared_model::validation::DefaultTransactionValidator transaction_validator;
   auto result = proto::Transaction(iroha::protocol::Transaction(tx));
   auto answer = transaction_validator.validate(result);
