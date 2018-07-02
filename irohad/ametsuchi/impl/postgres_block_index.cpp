@@ -65,7 +65,7 @@ namespace iroha {
                   auto ids = {account_id,
                               command.srcAccountId(),
                               command.destAccountId()};
-                  auto asset_id = command.assetId();
+                  auto &asset_id = command.assetId();
                   // flat map accounts to unindexed keys
                   boost::for_each(ids, [&](const auto &id) {
                     try {

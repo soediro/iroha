@@ -51,14 +51,19 @@ namespace iroha {
           shared_model::interface::GrantablePermissionSet({permission})
               .toBitstring();
       int size;
-      sql_ << "SELECT count(*) FROM account_has_grantable_permissions WHERE "
-              "permittee_account_id = :permittee_account_id AND account_id = "
-              ":account_id "
-              " AND permission & :permission = :permission ",
-          soci::into(size),
-          soci::use(permitee_account_id, "permittee_account_id"),
-          soci::use(account_id, "account_id"),
-          soci::use(perm_str, "permission");
+      soci::statement st = sql_.prepare
+          << "SELECT count(*) FROM account_has_grantable_permissions WHERE "
+             "permittee_account_id = :permittee_account_id AND account_id = "
+             ":account_id "
+             " AND permission & :permission = :permission ";
+
+      st.exchange(soci::into(size));
+      st.exchange(soci::use(permitee_account_id, "permittee_account_id"));
+      st.exchange(soci::use(account_id, "account_id"));
+      st.exchange(soci::use(perm_str, "permission"));
+      st.define_and_bind();
+      st.execute(true);
+
       return size == 1;
     }
 
@@ -111,10 +116,17 @@ namespace iroha {
     PostgresWsvQuery::getAccount(const AccountIdType &account_id) {
       boost::optional<std::string> domain_id, data;
       boost::optional<shared_model::interface::types::QuorumType> quorum;
-      sql_ << "SELECT domain_id, quorum, data FROM account WHERE account_id = "
-              ":account_id",
-          soci::into(domain_id), soci::into(quorum), soci::into(data),
-          soci::use(account_id);
+      soci::statement st = sql_.prepare
+          << "SELECT domain_id, quorum, data FROM account WHERE account_id = "
+             ":account_id";
+
+      st.exchange(soci::into(domain_id));
+      st.exchange(soci::into(quorum));
+      st.exchange(soci::into(data));
+      st.exchange(soci::use(account_id, "account_id"));
+
+      st.define_and_bind();
+      st.execute(true);
 
       if (not domain_id) {
         return boost::none;
@@ -158,10 +170,15 @@ namespace iroha {
       boost::optional<std::string> domain_id, data;
       boost::optional<int32_t> precision;
       boost::optional<shared_model::interface::types::QuorumType> quorum;
-      std::cout << "getAsset(" << asset_id << ")" << std::endl;
-      sql_ << "SELECT domain_id, precision FROM asset WHERE asset_id = "
-              ":account_id",
-          soci::into(domain_id), soci::into(precision), soci::use(asset_id);
+      soci::statement st = sql_.prepare
+          << "SELECT domain_id, precision FROM asset WHERE asset_id = "
+             ":account_id";
+      st.exchange(soci::into(domain_id));
+      st.exchange(soci::into(precision));
+      st.exchange(soci::use(asset_id));
+
+      st.define_and_bind();
+      st.execute(true);
 
       if (not domain_id) {
         return boost::none;
@@ -199,9 +216,14 @@ namespace iroha {
     PostgresWsvQuery::getAccountAsset(const AccountIdType &account_id,
                                       const AssetIdType &asset_id) {
       boost::optional<std::string> amount;
-      sql_ << "SELECT amount FROM account_has_asset WHERE account_id = "
-              ":account_id AND asset_id = :asset_id",
-          soci::into(amount), soci::use(account_id), soci::use(asset_id);
+      soci::statement st = sql_.prepare
+          << "SELECT amount FROM account_has_asset WHERE account_id = "
+             ":account_id AND asset_id = :asset_id";
+      st.exchange(soci::into(amount));
+      st.exchange(soci::use(account_id));
+      st.exchange(soci::use(asset_id));
+      st.define_and_bind();
+      st.execute(true);
 
       if (not amount) {
         return boost::none;
@@ -213,8 +235,12 @@ namespace iroha {
     boost::optional<std::shared_ptr<shared_model::interface::Domain>>
     PostgresWsvQuery::getDomain(const DomainIdType &domain_id) {
       boost::optional<std::string> role;
-      sql_ << "SELECT default_role FROM domain WHERE domain_id = :id LIMIT 1",
-          soci::into(role), soci::use(domain_id);
+      soci::statement st = sql_.prepare
+          << "SELECT default_role FROM domain WHERE domain_id = :id LIMIT 1";
+      st.exchange(soci::into(role));
+      st.exchange(soci::use(domain_id));
+      st.define_and_bind();
+      st.execute(true);
 
       if (not role) {
         return boost::none;
