@@ -17,13 +17,13 @@ using namespace iroha::ordering::transport;
 class OnDemandOsTest : public ::testing::Test {
  public:
   std::shared_ptr<OnDemandOrderingService> os;
-  const uint64_t transaction_limit = 2;
-  const uint64_t proposal_limit = 30;
-  const RoundType target_round = RoundType(1, 1);
+  const uint64_t transaction_limit = 20;
+  const uint64_t proposal_limit = 5;
+  const RoundType target_round = RoundType(2, 1);
 
   void SetUp() override {
     os = std::make_shared<OnDemandOrderingServiceImpl>(
-        transaction_limit, proposal_limit, std::make_pair(2, 1));
+        transaction_limit, proposal_limit, target_round);
   }
 
   /**
@@ -35,18 +35,17 @@ class OnDemandOsTest : public ::testing::Test {
       OnDemandOrderingService &os, std::pair<uint64_t, uint64_t> range) {
     OnDemandOrderingService::CollectionType collection;
     for (auto i = range.first; i < range.second; ++i) {
-      auto tx = shared_model::proto::TransactionBuilder()
-                    .createdTime(iroha::time::now())
-                    .creatorAccountId("admin@ru")
-                    .addAssetQuantity("admin@tu", "coin#coin", "1.0")
-                    .quorum(1)
-                    .build()
-                    .signAndAddSignature(
-                        shared_model::crypto::DefaultCryptoAlgorithmType::
-                            generateKeypair())
-                    .finish();
-      collection.push_back(
-          std::make_shared<shared_model::proto::Transaction>(tx));
+      collection.push_back(std::make_shared<shared_model::proto::Transaction>(
+          shared_model::proto::TransactionBuilder()
+              .createdTime(iroha::time::now())
+              .creatorAccountId("admin@ru")
+              .addAssetQuantity("admin@tu", "coin#coin", "1.0")
+              .quorum(1)
+              .build()
+              .signAndAddSignature(
+                  shared_model::crypto::DefaultCryptoAlgorithmType::
+                      generateKeypair())
+              .finish()));
     }
     os.onTransactions(collection);
   }
@@ -89,13 +88,13 @@ TEST_F(OnDemandOsTest, NormalRound) {
  * AND the rest of transactions isn't appeared in next after next round
  */
 TEST_F(OnDemandOsTest, OverflowRound) {
-  generateTransactionsAndInsert(*os, {1, proposal_limit * 2});
+  generateTransactionsAndInsert(*os, {1, transaction_limit * 2});
 
   os->onCollaborationOutcome(RoundOutput::SUCCESSFUL, target_round);
 
   ASSERT_TRUE(os->onRequestProposal(target_round));
-  ASSERT_TRUE((*os->onRequestProposal(target_round))->transactions().size()
-              == proposal_limit);
+  ASSERT_EQ(transaction_limit,
+            (*os->onRequestProposal(target_round))->transactions().size());
 }
 
 /**
@@ -112,15 +111,15 @@ TEST_F(OnDemandOsTest, ConcurrentInsert) {}
  * @then  check that old
  */
 TEST_F(OnDemandOsTest, Erase) {
-  auto round = RoundType(1, 1);
-  for (auto i = 1u; i < proposal_limit + 1; ++i) {
+  auto round = target_round;
+  for (auto i = target_round.first; i < proposal_limit + 1; ++i) {
     generateTransactionsAndInsert(*os, {1, proposal_limit});
     os->onCollaborationOutcome(RoundOutput::SUCCESSFUL, round);
     round = {i, round.second};
     ASSERT_TRUE(os->onRequestProposal({i, 1}));
   }
 
-  for (uint64_t i = proposal_limit, j = 1; i < 2 * proposal_limit; ++i, ++j) {
+  for (uint64_t i = proposal_limit + 1, j = 1; i < 2 * proposal_limit; ++i, ++j) {
     generateTransactionsAndInsert(*os, {1, proposal_limit});
     ASSERT_FALSE(os->onRequestProposal({i, 1}));
     os->onCollaborationOutcome(RoundOutput::SUCCESSFUL, round);
