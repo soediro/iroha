@@ -99,7 +99,7 @@ namespace shared_model {
       /// Type of the transfer message
       using DescriptionType = std::string;
 
-      using BatchType = enum { ATOMIC, ORDERED };
+      using BatchType = enum { ATOMIC = 0, ORDERED = 1};
     }  // namespace types
   }    // namespace interface
 }  // namespace shared_model

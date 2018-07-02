@@ -41,7 +41,7 @@ namespace shared_model {
           : CopyableProto(std::forward<BatchMetaType>(batch_meta)),
             type_{[this] {
               unsigned which = proto_->GetDescriptor()
-                                   ->FindFieldByName("batch_type")
+                                   ->FindFieldByName("type")
                                    ->enum_type()
                                    ->FindValueByNumber(proto_->type())
                                    ->index();

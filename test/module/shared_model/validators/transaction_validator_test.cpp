@@ -69,7 +69,8 @@ TEST_F(TransactionValidatorTest, InvalidCreateRolePermission) {
   cmd.mutable_create_role()->set_role_name("role");
   cmd.mutable_create_role()->add_permissions(
       static_cast<iroha::protocol::RolePermission>(-1));
-  *tx.mutable_payload()->mutable_reduced_payload()->add_commands() = std::move(cmd);
+  *tx.mutable_payload()->mutable_reduced_payload()->add_commands() =
+      std::move(cmd);
   shared_model::validation::DefaultTransactionValidator transaction_validator;
   auto result = proto::Transaction(iroha::protocol::Transaction(tx));
   auto answer = transaction_validator.validate(result);
@@ -111,7 +112,30 @@ TEST_F(TransactionValidatorTest, StatelessValidTest) {
 
   ASSERT_FALSE(answer.hasErrors()) << answer.reason();
 }
+/**
+ * @given transaction made of commands with valid fields
+ * @when commands validation is invoked
+ * @then answer has no errors
+ */
+TEST_F(TransactionValidatorTest, BatchValidTest) {
+  std::string creator_account_id = "admin@test";
 
+  TestTransactionBuilder builder;
+  auto tx = builder.creatorAccountId(creator_account_id)
+                .createdTime(created_time)
+                .quorum(1)
+                .batchMeta(interface::types::BatchType::ATOMIC,
+                           std::vector<interface::types::HashType>())
+                .createDomain("test", "test")
+                .build()
+                .getTransport();
+  shared_model::validation::DefaultTransactionValidator transaction_validator;
+  auto result = proto::Transaction(iroha::protocol::Transaction(tx));
+  auto answer = transaction_validator.validate(result);
+
+  ASSERT_FALSE(answer.hasErrors()) << answer.reason();
+  ASSERT_EQ(tx.payload().batch().type(), interface::types::BatchType::ATOMIC);
+}
 /**
  * @given transaction made of commands with invalid fields
  * @when commands validation is invoked
