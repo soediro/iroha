@@ -32,11 +32,12 @@ namespace iroha {
   namespace ametsuchi {
 
     /**
-     * Transforms soci::rowset<soci::row> to vector of Ts by applying transform_func
+     * Transforms soci::rowset<soci::row> to vector of Ts by applying
+     * transform_func
      * @tparam T - type to transform to
      * @tparam Operator - type of transformation function, must return T
-     * @param result - soci::rowset<soci::row> which contains several rows from the
-     * database
+     * @param result - soci::rowset<soci::row> which contains several rows from
+     * the database
      * @param transform_func - function which transforms result row to T
      * @return vector of target type
      */
@@ -79,6 +80,23 @@ namespace iroha {
       }
     }
 
+    template <typename Function, typename ParamType>
+    void processSOCI(soci::statement &st,
+                     soci::indicator &ind,
+                     ParamType &row,
+                     Function f) {
+      while (st.fetch()) {
+        switch (ind) {
+          case soci::i_ok:
+            f(row);
+            break;
+          case soci::i_null:
+          case soci::i_truncated:
+            break;
+        }
+      }
+    }
+
     static inline shared_model::builder::BuilderResult<
         shared_model::interface::Account>
     makeAccount(const std::string &account_id,
@@ -97,7 +115,9 @@ namespace iroha {
 
     static inline shared_model::builder::BuilderResult<
         shared_model::interface::Asset>
-    makeAsset(const std::string &asset_id, const std::string &domain_id, const int32_t precision) noexcept {
+    makeAsset(const std::string &asset_id,
+              const std::string &domain_id,
+              const int32_t precision) noexcept {
       return tryBuild([&] {
         return shared_model::builder::DefaultAssetBuilder()
             .assetId(asset_id)
@@ -125,10 +145,12 @@ namespace iroha {
 
     static inline shared_model::builder::BuilderResult<
         shared_model::interface::AccountAsset>
-    makeAccountAsset(const std::string &account_id, const std::string &asset_id, const std::string &amount) noexcept {
+    makeAccountAsset(const std::string &account_id,
+                     const std::string &asset_id,
+                     const std::string &amount) noexcept {
       return tryBuild([&] {
-        auto balance = shared_model::builder::DefaultAmountBuilder::fromString(
-            amount);
+        auto balance =
+            shared_model::builder::DefaultAmountBuilder::fromString(amount);
         return balance | [&](const auto &balance_ptr) {
           return shared_model::builder::DefaultAccountAssetBuilder()
               .accountId(account_id)

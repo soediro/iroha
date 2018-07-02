@@ -92,16 +92,9 @@ namespace iroha {
            soci::use(account_id));
       st.execute();
 
-      while (st.fetch()) {
-        switch (ind) {
-          case soci::i_ok:
-            result.push_back(std::stoull(row));
-            break;
-          case soci::i_null:
-          case soci::i_truncated:
-            break;
-        }
-      }
+      processSOCI(st, ind, row, [&result](std::string &r) {
+        result.push_back(std::stoull(r));
+      });
       return result;
     }
 
@@ -172,17 +165,9 @@ namespace iroha {
                    soci::use(block_id));
               st.execute();
 
-              while (st.fetch()) {
-                switch (ind) {
-                  case soci::i_ok:
-                    index.push_back(row);
-                    break;
-                  case soci::i_null:
-                  case soci::i_truncated:
-                    break;
-                }
-              }
-
+              processSOCI(st, ind, row, [&index](std::string &r) {
+                index.push_back(r);
+              });
               this->callback(subscriber, block_id)(index);
             }
             subscriber.on_completed();
@@ -216,16 +201,9 @@ namespace iroha {
                    soci::use(asset_id));
               st.execute();
 
-              while (st.fetch()) {
-                switch (ind) {
-                  case soci::i_ok:
-                    index.push_back(row);
-                    break;
-                  case soci::i_null:
-                  case soci::i_truncated:
-                    break;
-                }
-              }
+              processSOCI(st, ind, row, [&index](std::string &r) {
+                index.push_back(r);
+              });
               this->callback(subscriber, block_id)(index);
             }
             subscriber.on_completed();

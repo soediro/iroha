@@ -55,8 +55,10 @@ namespace iroha {
               "permittee_account_id = :permittee_account_id AND account_id = "
               ":account_id "
               " AND permission & :permission = :permission ",
-          soci::into(size), soci::use(permitee_account_id, "permittee_account_id"),
-          soci::use(account_id, "account_id"), soci::use(perm_str, "permission");
+          soci::into(size),
+          soci::use(permitee_account_id, "permittee_account_id"),
+          soci::use(account_id, "account_id"),
+          soci::use(perm_str, "permission");
       return size == 1;
     }
 
@@ -72,16 +74,8 @@ namespace iroha {
            soci::use(account_id));
       st.execute();
 
-      while (st.fetch()) {
-        switch (ind) {
-          case soci::i_ok:
-            roles.push_back(row);
-            break;
-          case soci::i_null:
-          case soci::i_truncated:
-            break;
-        }
-      }
+      processSOCI(
+          st, ind, row, [&roles](std::string &row) { roles.push_back(row); });
       return roles;
     }
 
@@ -97,16 +91,10 @@ namespace iroha {
            soci::use(role_name));
       st.execute();
 
-      while (st.fetch()) {
-        switch (ind) {
-          case soci::i_ok:
-            return shared_model::interface::RolePermissionSet(row);
-          case soci::i_null:
-          case soci::i_truncated:
-            break;
-        }
-      }
-      return shared_model::interface::RolePermissionSet();
+      processSOCI(st, ind, row, [&set](std::string &row) {
+        set = shared_model::interface::RolePermissionSet(row);
+      });
+      return set;
     }
 
     boost::optional<std::vector<RoleIdType>> PostgresWsvQuery::getRoles() {
@@ -158,18 +146,10 @@ namespace iroha {
            soci::use(account_id));
       st.execute();
 
-      while (st.fetch()) {
-        switch (ind) {
-          case soci::i_ok:
-            pubkeys.push_back(shared_model::crypto::PublicKey(
-                shared_model::crypto::Blob::fromHexString(row)));
-            break;
-          case soci::i_null:
-          case soci::i_truncated:
-            break;
-        }
-      }
-
+      processSOCI(st, ind, row, [&pubkeys](std::string &row) {
+        pubkeys.push_back(shared_model::crypto::PublicKey(
+            shared_model::crypto::Blob::fromHexString(row)));
+      });
       return boost::make_optional(pubkeys);
     }
 
@@ -203,22 +183,15 @@ namespace iroha {
       std::vector<std::shared_ptr<shared_model::interface::AccountAsset>>
           assets;
 
-      while (st.fetch()) {
-        switch (ind) {
-          case soci::i_null:
-          case soci::i_truncated:
-            break;
-          case soci::i_ok:
-            auto result = fromResult(makeAccountAsset(
-                account_id, row.get<std::string>(1), row.get<std::string>(2)));
-            if (result) {
-              std::shared_ptr<shared_model::interface::AccountAsset> ass =
-                  result.get();
-              assets.push_back(ass);
-            }
-            break;
+      processSOCI(st, ind, row, [&assets, &account_id](soci::row &row) {
+        auto result = fromResult(makeAccountAsset(
+            account_id, row.get<std::string>(1), row.get<std::string>(2)));
+        if (result) {
+          std::shared_ptr<shared_model::interface::AccountAsset> ass =
+              result.get();
+          assets.push_back(ass);
         }
-      }
+      });
       return boost::make_optional(assets);
     }
 
