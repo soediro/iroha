@@ -43,7 +43,7 @@ const char *kPeerRetrieveFail = "Failed to retrieve peers";
 const char *kPeerFindFail = "Failed to find requested peer";
 
 struct TimerWrapper : public val::FieldValidator {
-  TimerWrapper(iroha::ts64_t t)
+  explicit TimerWrapper(iroha::ts64_t t)
       : FieldValidator(val::FieldValidator::kDefaultFutureGap,
                        [=] { return t; }) {}
 };
