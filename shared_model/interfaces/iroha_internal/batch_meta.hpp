@@ -22,7 +22,7 @@ namespace shared_model {
       std::string toString() const override {
         return detail::PrettyStringBuilder()
             .init("BatchMeta")
-            .append("Type", type() == types::ATOMIC ? "ATOMIC" : "ORDERED")
+            .append("Type", type() == types::BatchType::ATOMIC ? "ATOMIC" : "ORDERED")
             .appendAll(transactionHashes(),
                        [](auto &hash) { return hash.toString(); })
             .finalize();

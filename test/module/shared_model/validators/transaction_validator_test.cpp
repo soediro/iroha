@@ -134,7 +134,8 @@ TEST_F(TransactionValidatorTest, BatchValidTest) {
   auto answer = transaction_validator.validate(result);
 
   ASSERT_FALSE(answer.hasErrors()) << answer.reason();
-  ASSERT_EQ(tx.payload().batch().type(), interface::types::BatchType::ATOMIC);
+  ASSERT_EQ(tx.payload().batch().type(),
+            static_cast<int>(interface::types::BatchType::ATOMIC));
 }
 /**
  * @given transaction made of commands with invalid fields

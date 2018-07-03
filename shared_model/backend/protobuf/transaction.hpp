@@ -118,7 +118,7 @@ namespace shared_model {
         return std::vector<proto::Command>(reduced_payload_.commands().begin(),
                                            reduced_payload_.commands().end());
       }};
-
+      
       const Lazy<interface::types::BlobType> blob_{
           [this] { return makeBlob(*proto_); }};
 
