@@ -96,12 +96,7 @@ namespace shared_model {
       }
       boost::optional<std::shared_ptr<interface::BatchMeta>> batch_meta()
           const override {
-        if (payload_.has_batch()) {
-          std::shared_ptr<interface::BatchMeta> b =
-              std::make_shared<proto::BatchMeta>(payload_.batch());
-          return b;
-        }
-        return boost::none;
+        return *meta_;
       }
 
      private:
@@ -118,7 +113,7 @@ namespace shared_model {
         return std::vector<proto::Command>(reduced_payload_.commands().begin(),
                                            reduced_payload_.commands().end());
       }};
-      
+
       const Lazy<interface::types::BlobType> blob_{
           [this] { return makeBlob(*proto_); }};
 
@@ -127,6 +122,16 @@ namespace shared_model {
 
       const Lazy<interface::types::BlobType> blobTypeReducedPayload_{
           [this] { return makeBlob(reduced_payload_); }};
+
+      const Lazy<boost::optional<std::shared_ptr<interface::BatchMeta>>> meta_{
+          [this] () -> boost::optional<std::shared_ptr<interface::BatchMeta>> {
+            if (payload_.has_batch()) {
+              std::shared_ptr<interface::BatchMeta> b =
+                  std::make_shared<proto::BatchMeta>(payload_.batch());
+              return b;
+            }
+            return boost::none;
+          }};
 
       const Lazy<SignatureSetType<proto::Signature>> signatures_{[this] {
         auto signatures = proto_->signatures()
