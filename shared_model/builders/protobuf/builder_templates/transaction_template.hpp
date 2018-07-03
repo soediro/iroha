@@ -112,6 +112,7 @@ namespace shared_model {
               ->set_creator_account_id(account_id);
         });
       }
+
       auto batchMeta(interface::types::BatchType type,
                      std::vector<interface::types::HashType> hashes) const {
         return transform<0>([&](auto &tx) {
@@ -119,12 +120,13 @@ namespace shared_model {
               static_cast<
                   iroha::protocol::Transaction::Payload::BatchMeta::BatchType>(
                   type));
-          for (auto hash : hashes) {
+          for (const auto &hash : hashes) {
             tx.mutable_payload()->mutable_batch()->add_tx_hashes(
-                hash.toString());
+                crypto::toBinaryString(hash));
           }
         });
       }
+
       auto createdTime(interface::types::TimestampType created_time) const {
         return transform<CreatedTime>([&](auto &tx) {
           tx.mutable_payload()->mutable_reduced_payload()->set_created_time(

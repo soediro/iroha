@@ -94,6 +94,7 @@ namespace shared_model {
       interface::types::QuorumType quorum() const override {
         return reduced_payload_.quorum();
       }
+
       boost::optional<std::shared_ptr<interface::BatchMeta>> batch_meta()
           const override {
         return *meta_;

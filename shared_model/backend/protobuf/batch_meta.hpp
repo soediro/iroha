@@ -6,16 +6,15 @@
 #ifndef IROHA_PROTO_BATCH_META_HPP
 #define IROHA_PROTO_BATCH_META_HPP
 
-#include "interfaces/common_objects/amount.hpp"
-
+#include <boost/range/numeric.hpp>
 #include <numeric>
 
 #include "backend/protobuf/common_objects/trivial_proto.hpp"
 #include "backend/protobuf/util.hpp"
 #include "block.pb.h"
+#include "interfaces/common_objects/amount.hpp"
 #include "interfaces/common_objects/types.hpp"
 #include "utils/lazy_initializer.hpp"
-#include <boost/range/numeric.hpp>
 
 namespace shared_model {
   namespace proto {
@@ -36,13 +35,14 @@ namespace shared_model {
               return static_cast<interface::types::BatchType>(which);
             }},
             transaction_hashes_{[this] {
-            return boost::accumulate(proto_->tx_hashes(),
-                                     TransactionHashesType{},
-                                     [](auto &&acc, const auto &hash) {
-                                       acc.emplace_back(hash);
-                                       return std::forward<decltype(acc)>(acc);
-                                     });
-          }} {}
+              return boost::accumulate(
+                  proto_->tx_hashes(),
+                  TransactionHashesType{},
+                  [](auto &&acc, const auto &hash) {
+                    acc.emplace_back(hash);
+                    return std::forward<decltype(acc)>(acc);
+                  });
+            }} {}
 
       BatchMeta(const BatchMeta &o) : BatchMeta(o.proto_) {}
 
