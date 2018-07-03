@@ -40,6 +40,7 @@ class OnDemandOsTest : public ::testing::Test {
           shared_model::proto::TransactionBuilder()
               .createdTime(iroha::time::now())
               .creatorAccountId("foo@bar")
+              .createAsset("asset", "domain", 1)
               .quorum(1)
               .build()
               .signAndAddSignature(

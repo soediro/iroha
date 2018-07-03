@@ -29,8 +29,7 @@ void OnDemandOrderingServiceImpl::onCollaborationOutcome(
   log_->info(
       "onCollaborationOutcome => round[{}, {}]", round.first, round.second);
   // exclusive write lock
-  boost::upgrade_lock<boost::shared_mutex> upgrade_lock(lock_);
-  boost::upgrade_to_unique_lock<boost::shared_mutex> guard(upgrade_lock);
+  std::lock_guard<std::shared_timed_mutex> guard(lock_);
   log_->info("onCollaborationOutcome => write lock is acquired");
 
   packNextProposal(outcome, round);
@@ -42,7 +41,7 @@ void OnDemandOrderingServiceImpl::onCollaborationOutcome(
 void OnDemandOrderingServiceImpl::onTransactions(
     const CollectionType &transactions) {
   // read lock
-  boost::shared_lock<boost::shared_mutex> guard(lock_);
+  std::shared_lock<std::shared_timed_mutex> guard(lock_);
   log_->info("onTransactions => collections size = {}", transactions.size());
 
   std::for_each(
@@ -55,7 +54,7 @@ void OnDemandOrderingServiceImpl::onTransactions(
 boost::optional<OnDemandOrderingServiceImpl::ProposalType>
 OnDemandOrderingServiceImpl::onRequestProposal(transport::RoundType round) {
   // read lock
-  boost::shared_lock<boost::shared_mutex> guard(lock_);
+  std::shared_lock<std::shared_timed_mutex> guard(lock_);
   auto proposal = proposal_map_.find(round);
   if (proposal != proposal_map_.end()) {
     return (*proposal).second;

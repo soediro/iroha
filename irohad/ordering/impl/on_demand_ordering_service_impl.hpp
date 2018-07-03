@@ -9,10 +9,10 @@
 #include "ordering/on_demand_ordering_service.hpp"
 
 #include <queue>
+#include <shared_mutex>
 #include <unordered_map>
 
 #include <tbb/concurrent_queue.h>
-#include <boost/thread.hpp>
 
 #include "logger/logger.hpp"
 
@@ -96,13 +96,12 @@ namespace iroha {
       /**
        * Lock for onCollaborationOutcome critical section
        */
-      boost::shared_mutex lock_;
+      std::shared_timed_mutex lock_;
 
       /**
        * Logger instance
        */
       logger::Logger log_;
-
     };
   }  // namespace ordering
 }  // namespace iroha
