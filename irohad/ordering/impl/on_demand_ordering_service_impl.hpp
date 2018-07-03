@@ -94,7 +94,7 @@ namespace iroha {
           current_proposal_;
 
       /**
-       * Lock for onCollaborationOutcome critical section
+       * Read write mutex for public methods
        */
       std::shared_timed_mutex lock_;
 
