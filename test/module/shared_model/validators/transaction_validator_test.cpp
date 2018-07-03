@@ -39,6 +39,7 @@ class TransactionValidatorTest : public ValidatorsTest {
                   .getTransport();
     return tx;
   }
+  shared_model::validation::DefaultTransactionValidator transaction_validator;
 };
 
 /**
@@ -50,7 +51,6 @@ TEST_F(TransactionValidatorTest, EmptyTransactionTest) {
   auto tx = generateEmptyTransaction();
   tx.mutable_payload()->mutable_reduced_payload()->set_created_time(
       created_time);
-  shared_model::validation::DefaultTransactionValidator transaction_validator;
   auto result = proto::Transaction(iroha::protocol::Transaction(tx));
   auto answer = transaction_validator.validate(result);
   ASSERT_EQ(answer.getReasonsMap().size(), 1);
@@ -106,7 +106,6 @@ TEST_F(TransactionValidatorTest, StatelessValidTest) {
       },
       [] {});
 
-  shared_model::validation::DefaultTransactionValidator transaction_validator;
   auto result = proto::Transaction(iroha::protocol::Transaction(tx));
   auto answer = transaction_validator.validate(result);
 
@@ -120,23 +119,6 @@ TEST_F(TransactionValidatorTest, StatelessValidTest) {
 TEST_F(TransactionValidatorTest, BatchValidTest) {
   std::string creator_account_id = "admin@test";
 
-  TestTransactionBuilder builder;
-  auto tx = builder.creatorAccountId(creator_account_id)
-                .createdTime(created_time)
-                .quorum(1)
-                .batchMeta(interface::types::BatchType::ATOMIC,
-                           std::vector<interface::types::HashType>())
-                .createDomain("test", "test")
-                .build()
-                .getTransport();
-  shared_model::validation::DefaultTransactionValidator transaction_validator;
-  auto result = proto::Transaction(iroha::protocol::Transaction(tx));
-  auto answer = transaction_validator.validate(result);
-
-  ASSERT_FALSE(answer.hasErrors()) << answer.reason();
-  ASSERT_EQ(tx.payload().batch().type(),
-            static_cast<int>(interface::types::BatchType::ATOMIC));
-}
 /**
  * @given transaction made of commands with invalid fields
  * @when commands validation is invoked
@@ -165,7 +147,6 @@ TEST_F(TransactionValidatorTest, StatelessInvalidTest) {
       },
       [] {});
 
-  shared_model::validation::DefaultTransactionValidator transaction_validator;
   auto result = proto::Transaction(iroha::protocol::Transaction(tx));
   auto answer = transaction_validator.validate(result);
 

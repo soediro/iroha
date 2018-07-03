@@ -140,12 +140,10 @@ namespace shared_model {
         });
       }
 
-      auto addAssetQuantity(const interface::types::AccountIdType &account_id,
-                            const interface::types::AssetIdType &asset_id,
+      auto addAssetQuantity(const interface::types::AssetIdType &asset_id,
                             const std::string &amount) const {
         return addCommand([&](auto proto_command) {
           auto command = proto_command->mutable_add_asset_quantity();
-          command->set_account_id(account_id);
           command->set_asset_id(asset_id);
           initializeProtobufAmount(command->mutable_amount(), amount);
         });
@@ -285,13 +283,10 @@ namespace shared_model {
         });
       }
 
-      auto subtractAssetQuantity(
-          const interface::types::AccountIdType &account_id,
-          const interface::types::AssetIdType &asset_id,
-          const std::string &amount) const {
+      auto subtractAssetQuantity(const interface::types::AssetIdType &asset_id,
+                                 const std::string &amount) const {
         return addCommand([&](auto proto_command) {
           auto command = proto_command->mutable_subtract_asset_quantity();
-          command->set_account_id(account_id);
           command->set_asset_id(asset_id);
           initializeProtobufAmount(command->mutable_amount(), amount);
         });
