@@ -21,7 +21,6 @@
 #include <boost/optional.hpp>
 
 #define SOCI_USE_BOOST
-#include <soci/postgresql/soci-postgresql.h>
 #include <soci/soci.h>
 
 #include "builders/default_builders.hpp"
@@ -68,8 +67,8 @@ namespace iroha {
       }
     }
 
-    template <typename Function, typename ParamType>
-    void processSOCI(soci::statement &st,
+    template <typename ParamType, typename Function>
+    void processSoci(soci::statement &st,
                      soci::indicator &ind,
                      ParamType &row,
                      Function f) {
@@ -77,7 +76,6 @@ namespace iroha {
         switch (ind) {
           case soci::i_ok:
             f(row);
-            break;
           case soci::i_null:
           case soci::i_truncated:
             break;
@@ -112,22 +110,6 @@ namespace iroha {
             .domainId(domain_id)
             .precision(precision)
             .build();
-      });
-    }
-
-    static inline shared_model::builder::BuilderResult<
-        shared_model::interface::AccountAsset>
-    makeAccountAsset(const soci::row &row) noexcept {
-      return tryBuild([&row] {
-        auto balance = shared_model::builder::DefaultAmountBuilder::fromString(
-            row.get<std::string>(2));
-        return balance | [&](const auto &balance_ptr) {
-          return shared_model::builder::DefaultAccountAssetBuilder()
-              .accountId(row.get<std::string>(0))
-              .assetId(row.get<std::string>(1))
-              .balance(*balance_ptr)
-              .build();
-        };
       });
     }
 

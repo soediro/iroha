@@ -20,7 +20,6 @@
 
 #include "ametsuchi/storage.hpp"
 
-#include <soci/postgresql/soci-postgresql.h>
 #include <soci/soci.h>
 #include <boost/optional.hpp>
 #include <cmath>

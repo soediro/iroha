@@ -31,7 +31,7 @@
 namespace iroha {
   namespace ametsuchi {
 
-    bool executeSOCI(soci::statement &st) {
+    bool execute(soci::statement &st) {
       st.define_and_bind();
       try {
         st.execute(true);
@@ -52,7 +52,7 @@ namespace iroha {
                            "(:id, :height)",
            soci::use(account_id),
            soci::use(height));
-      return executeSOCI(st);
+      return execute(st);
     }
 
     auto PostgresBlockIndex::indexAccountAssets(
@@ -91,7 +91,7 @@ namespace iroha {
                          soci::use(height),
                          soci::use(asset_id),
                          soci::use(index));
-                    status &= executeSOCI(st);
+                    status &= execute(st);
                   });
                   return status;
                 },
@@ -116,7 +116,7 @@ namespace iroha {
                                  ":height)",
                  soci::use(hash),
                  soci::use(height));
-            executeSOCI(st);
+            execute(st);
 
             this->indexAccountIdHeight(creator_id, height);
 
@@ -130,7 +130,7 @@ namespace iroha {
                  soci::use(creator_id),
                  soci::use(height),
                  soci::use(index));
-            executeSOCI(st);
+            execute(st);
 
             this->indexAccountAssets(
                 creator_id, height, index, tx.value().commands());

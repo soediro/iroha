@@ -92,7 +92,7 @@ namespace iroha {
            soci::use(account_id));
       st.execute();
 
-      processSOCI(st, ind, row, [&result](std::string &r) {
+      processSoci(st, ind, row, [&result](std::string &r) {
         result.push_back(std::stoull(r));
       });
       return result;
@@ -165,7 +165,7 @@ namespace iroha {
                    soci::use(block_id));
               st.execute();
 
-              processSOCI(st, ind, row, [&index](std::string &r) {
+              processSoci(st, ind, row, [&index](std::string &r) {
                 index.push_back(r);
               });
               this->callback(subscriber, block_id)(index);
@@ -201,7 +201,7 @@ namespace iroha {
                    soci::use(asset_id));
               st.execute();
 
-              processSOCI(st, ind, row, [&index](std::string &r) {
+              processSoci(st, ind, row, [&index](std::string &r) {
                 index.push_back(r);
               });
               this->callback(subscriber, block_id)(index);

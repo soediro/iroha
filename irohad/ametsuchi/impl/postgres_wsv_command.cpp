@@ -119,10 +119,10 @@ namespace iroha {
           << "INSERT INTO account_has_grantable_permissions as "
              "has_perm(permittee_account_id, account_id, permission) VALUES "
              "(:permittee_account_id, :account_id, :perm) ON CONFLICT "
-             "(permittee_account_id, account_id) "
+             "(permittee_account_id, account_id) DO UPDATE SET "
              // SELECT will end up with a error, if the permission exists
-             "DO UPDATE SET permission=(SELECT has_perm.permission | :perm "
-             "WHERE (has_perm.permission & :perm) <> :perm);";
+             "permission=(SELECT has_perm.permission | :perm WHERE "
+             "(has_perm.permission & :perm) <> :perm);";
       st.exchange(soci::use(permittee_account_id, "permittee_account_id"));
       st.exchange(soci::use(account_id, "account_id"));
       st.exchange(soci::use(perm_str, "perm"));
@@ -151,11 +151,11 @@ namespace iroha {
                                 .unset(permission)
                                 .toBitstring();
       soci::statement st = sql_.prepare
-          << "UPDATE account_has_grantable_permissions as has_perm "
-             // SELECT will end up with a error, if the permission
-             // doesn't exists
-             "SET permission=(SELECT has_perm.permission & :perm "
-             "WHERE has_perm.permission & :perm = :perm) WHERE "
+          << "UPDATE account_has_grantable_permissions as has_perm SET "
+             // SELECT will end up with a error, if the permission doesn't
+             // exists
+             "permission=(SELECT has_perm.permission & :perm WHERE "
+             "has_perm.permission & :perm = :perm) WHERE "
              "permittee_account_id=:permittee_account_id AND "
              "account_id=:account_id;";
 
@@ -379,20 +379,16 @@ namespace iroha {
         const shared_model::interface::types::AccountIdType &creator_account_id,
         const std::string &key,
         const std::string &val) {
-      std::string json = "{" + creator_account_id + "}";
-      std::string empty_json = "{}";
-      std::string filled_json = "{" + creator_account_id + ", " + key + "}";
-      std::string value = "\"" + val + "\"";
       soci::statement st = sql_.prepare
           << "UPDATE account SET data = jsonb_set("
              "CASE WHEN data ?:creator_account_id THEN data ELSE "
              "jsonb_set(data, :json, :empty_json) END, "
              " :filled_json, :val) WHERE account_id=:account_id";
       st.exchange(soci::use(creator_account_id));
-      st.exchange(soci::use(json));
-      st.exchange(soci::use(empty_json));
-      st.exchange(soci::use(filled_json));
-      st.exchange(soci::use(value));
+      st.exchange(soci::use(std::string("{" + creator_account_id + "}")));
+      st.exchange(soci::use(std::string("{}")));
+      st.exchange(soci::use(std::string("{" + creator_account_id + ", " + key + "}")));
+      st.exchange(soci::use(std::string("\"" + val + "\"")));
       st.exchange(soci::use(account_id));
 
       auto msg = [&] {

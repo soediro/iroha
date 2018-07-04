@@ -4,6 +4,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <soci/postgresql/soci-postgresql.h>
+#include <soci/soci.h>
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -50,7 +52,9 @@ TEST_F(StorageInitTest, CreateStorageWithDatabase) {
              [](const Error<std::string> &error) { FAIL() << error.error; });
   soci::session sql(soci::postgresql, pg_opt_without_dbname_);
   int size;
-  sql << "SELECT COUNT(datname) FROM pg_catalog.pg_database WHERE datname = :dbname", soci::into(size), soci::use(dbname_);
+  sql << "SELECT COUNT(datname) FROM pg_catalog.pg_database WHERE datname = "
+         ":dbname",
+      soci::into(size), soci::use(dbname_);
   ASSERT_EQ(size, 1);
 }
 

@@ -16,8 +16,11 @@
  */
 
 #include "ametsuchi/impl/postgres_ordering_service_persistent_state.hpp"
+
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
+#include <soci/postgresql/soci-postgresql.h>
+
 #include "common/types.hpp"
 
 namespace iroha {
@@ -46,9 +49,13 @@ namespace iroha {
           log_(logger::log("PostgresOrderingServicePersistentState")) {}
 
     bool PostgresOrderingServicePersistentState::initStorage() {
-      *sql_ << "CREATE TABLE IF NOT EXISTS ordering_service_state "
-               "(proposal_height bigserial)";
-      *sql_ << "INSERT INTO ordering_service_state VALUES (2)";
+      try {
+        *sql_ << "CREATE TABLE IF NOT EXISTS ordering_service_state "
+            "(proposal_height bigserial)";
+        *sql_ << "INSERT INTO ordering_service_state VALUES (2)";
+      } catch (std::exception &e) {
+        return false;
+      }
       return true;
     }
 

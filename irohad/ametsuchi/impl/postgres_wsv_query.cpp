@@ -79,7 +79,7 @@ namespace iroha {
            soci::use(account_id));
       st.execute();
 
-      processSOCI(
+      processSoci(
           st, ind, row, [&roles](std::string &row) { roles.push_back(row); });
       return roles;
     }
@@ -96,7 +96,7 @@ namespace iroha {
            soci::use(role_name));
       st.execute();
 
-      processSOCI(st, ind, row, [&set](std::string &row) {
+      processSoci(st, ind, row, [&set](std::string &row) {
         set = shared_model::interface::RolePermissionSet(row);
       });
       return set;
@@ -158,7 +158,7 @@ namespace iroha {
            soci::use(account_id));
       st.execute();
 
-      processSOCI(st, ind, row, [&pubkeys](std::string &row) {
+      processSoci(st, ind, row, [&pubkeys](std::string &row) {
         pubkeys.push_back(shared_model::crypto::PublicKey(
             shared_model::crypto::Blob::fromHexString(row)));
       });
@@ -200,14 +200,10 @@ namespace iroha {
       std::vector<std::shared_ptr<shared_model::interface::AccountAsset>>
           assets;
 
-      processSOCI(st, ind, row, [&assets, &account_id](soci::row &row) {
-        auto result = fromResult(makeAccountAsset(
-            account_id, row.get<std::string>(1), row.get<std::string>(2)));
-        if (result) {
-          std::shared_ptr<shared_model::interface::AccountAsset> ass =
-              result.get();
-          assets.push_back(ass);
-        }
+      processSoci(st, ind, row, [&assets, &account_id](soci::row &row) {
+        fromResult(makeAccountAsset(
+            account_id, row.get<std::string>(1), row.get<std::string>(2)))
+            | [&assets](const auto &asset) { assets.push_back(asset); };
       });
       return boost::make_optional(assets);
     }

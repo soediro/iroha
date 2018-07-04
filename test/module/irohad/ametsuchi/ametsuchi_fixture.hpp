@@ -19,6 +19,8 @@
 #define IROHA_AMETSUCHI_FIXTURE_HPP
 
 #include <gtest/gtest.h>
+#include <soci/postgresql/soci-postgresql.h>
+#include <soci/soci.h>
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
