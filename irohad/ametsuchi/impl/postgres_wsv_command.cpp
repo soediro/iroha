@@ -23,13 +23,14 @@
 namespace iroha {
   namespace ametsuchi {
 
-    WsvCommandResult executeSOCI(soci::statement &st, std::string &error) {
+    template <typename Function>
+    WsvCommandResult execute(soci::statement &st, Function &&error) {
       st.define_and_bind();
       try {
         st.execute(true);
         return {};
       } catch (const std::exception &e) {
-        return expected::makeError(error);
+        return expected::makeError(error());
       }
     }
 
@@ -40,9 +41,10 @@ namespace iroha {
       soci::statement st = sql_.prepare
           << "INSERT INTO role(role_id) VALUES (:role_id)";
       st.exchange(soci::use(role_name));
-      auto msg =
-          (boost::format("failed to insert role: '%s'") % role_name).str();
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to insert role: '%s'") % role_name).str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertAccountRole(
@@ -54,12 +56,13 @@ namespace iroha {
       st.exchange(soci::use(account_id));
       st.exchange(soci::use(role_name));
 
-      auto msg = (boost::format("failed to insert account role, account: '%s', "
-                                "role name: '%s'")
-                  % account_id % role_name)
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to insert account role, account: '%s', "
+                              "role name: '%s'")
+                % account_id % role_name)
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::deleteAccountRole(
@@ -71,13 +74,14 @@ namespace iroha {
       st.exchange(soci::use(account_id));
       st.exchange(soci::use(role_name));
 
-      auto msg =
-          (boost::format("failed to delete account role, account id: '%s', "
-                         "role name: '%s'")
-           % account_id % role_name)
-              .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format(
+                    "failed to delete account role, account id: '%s', "
+                    "role name: '%s'")
+                % account_id % role_name)
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertRolePermissions(
@@ -90,12 +94,13 @@ namespace iroha {
       st.exchange(soci::use(role_id));
       st.exchange(soci::use(perm_str));
 
-      auto msg = (boost::format("failed to insert role permissions, role "
-                                "id: '%s', permissions: [%s]")
-                  % role_id % perm_str)
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to insert role permissions, role "
+                              "id: '%s', permissions: [%s]")
+                % role_id % perm_str)
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertAccountGrantablePermission(
@@ -118,18 +123,18 @@ namespace iroha {
       st.exchange(soci::use(account_id, "account_id"));
       st.exchange(soci::use(perm_str, "perm"));
 
-      auto msg =
-          (boost::format("failed to insert account grantable permission, "
-                         "permittee account id: '%s', "
-                         "account id: '%s', "
-                         "permission: '%s'")
-           % permittee_account_id
-           % account_id
-           // TODO(@l4l) 26/06/18 need to be simplified at IR-1479
-           % shared_model::proto::permissions::toString(permission))
-              .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to insert account grantable permission, "
+                              "permittee account id: '%s', "
+                              "account id: '%s', "
+                              "permission: '%s'")
+                % permittee_account_id
+                % account_id
+                // TODO(@l4l) 26/06/18 need to be simplified at IR-1479
+                % shared_model::proto::permissions::toString(permission))
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::deleteAccountGrantablePermission(
@@ -154,16 +159,16 @@ namespace iroha {
       st.exchange(soci::use(account_id, "account_id"));
       st.exchange(soci::use(perm_str, "perm"));
 
-      auto msg =
-          (boost::format("failed to delete account grantable permission, "
-                         "permittee account id: '%s', "
-                         "account id: '%s', "
-                         "permission id: '%s'")
-           % permittee_account_id % account_id
-           % shared_model::proto::permissions::toString(permission))
-              .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to delete account grantable permission, "
+                              "permittee account id: '%s', "
+                              "account id: '%s', "
+                              "permission id: '%s'")
+                % permittee_account_id % account_id
+                % shared_model::proto::permissions::toString(permission))
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertAccount(
@@ -176,16 +181,17 @@ namespace iroha {
       st.exchange(soci::use(account.quorum()));
       st.exchange(soci::use(account.jsonData()));
 
-      auto msg = (boost::format("failed to insert account, "
-                                "account id: '%s', "
-                                "domain id: '%s', "
-                                "quorum: '%d', "
-                                "json_data: %s")
-                  % account.accountId() % account.domainId() % account.quorum()
-                  % account.jsonData())
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to insert account, "
+                              "account id: '%s', "
+                              "domain id: '%s', "
+                              "quorum: '%d', "
+                              "json_data: %s")
+                % account.accountId() % account.domainId() % account.quorum()
+                % account.jsonData())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertAsset(
@@ -197,12 +203,13 @@ namespace iroha {
       st.exchange(soci::use(asset.domainId()));
       st.exchange(soci::use(asset.precision()));
 
-      auto msg = (boost::format("failed to insert asset, asset id: '%s', "
-                                "domain id: '%s', precision: %d")
-                  % asset.assetId() % asset.domainId() % asset.precision())
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to insert asset, asset id: '%s', "
+                              "domain id: '%s', precision: %d")
+                % asset.assetId() % asset.domainId() % asset.precision())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::upsertAccountAsset(
@@ -218,13 +225,14 @@ namespace iroha {
       st.exchange(soci::use(asset.assetId()));
       st.exchange(soci::use(balance));
 
-      auto msg =
-          (boost::format("failed to upsert account, account id: '%s', "
-                         "asset id: '%s', balance: %s")
-           % asset.accountId() % asset.assetId() % asset.balance().toString())
-              .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to upsert account, account id: '%s', "
+                              "asset id: '%s', balance: %s")
+                % asset.accountId() % asset.assetId()
+                % asset.balance().toString())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertSignatory(
@@ -234,12 +242,13 @@ namespace iroha {
              "NOTHING;";
       st.exchange(soci::use(signatory.hex()));
 
-      auto msg = (boost::format(
-                      "failed to insert signatory, signatory hex string: '%s'")
-                  % signatory.hex())
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format(
+                    "failed to insert signatory, signatory hex string: '%s'")
+                % signatory.hex())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertAccountSignatory(
@@ -251,13 +260,13 @@ namespace iroha {
       st.exchange(soci::use(account_id));
       st.exchange(soci::use(signatory.hex()));
 
-      auto msg =
-          (boost::format("failed to insert account signatory, account id: "
-                         "'%s', signatory hex string: '%s")
-           % account_id % signatory.hex())
-              .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to insert account signatory, account id: "
+                              "'%s', signatory hex string: '%s")
+                % account_id % signatory.hex())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::deleteAccountSignatory(
@@ -269,13 +278,13 @@ namespace iroha {
       st.exchange(soci::use(account_id));
       st.exchange(soci::use(signatory.hex()));
 
-      auto msg =
-          (boost::format("failed to delete account signatory, account id: "
-                         "'%s', signatory hex string: '%s'")
-           % account_id % signatory.hex())
-              .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to delete account signatory, account id: "
+                              "'%s', signatory hex string: '%s'")
+                % account_id % signatory.hex())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::deleteSignatory(
@@ -287,12 +296,13 @@ namespace iroha {
              "WHERE public_key = :pk)";
       st.exchange(soci::use(signatory.hex(), "pk"));
 
-      auto msg = (boost::format(
-                      "failed to delete signatory, signatory hex string: '%s'")
-                  % signatory.hex())
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format(
+                    "failed to delete signatory, signatory hex string: '%s'")
+                % signatory.hex())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertPeer(
@@ -302,12 +312,13 @@ namespace iroha {
       st.exchange(soci::use(peer.pubkey().hex()));
       st.exchange(soci::use(peer.address()));
 
-      auto msg = (boost::format(
-                      "failed to insert peer, public key: '%s', address: '%s'")
-                  % peer.pubkey().hex() % peer.address())
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format(
+                    "failed to insert peer, public key: '%s', address: '%s'")
+                % peer.pubkey().hex() % peer.address())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::deletePeer(
@@ -317,12 +328,13 @@ namespace iroha {
       st.exchange(soci::use(peer.pubkey().hex()));
       st.exchange(soci::use(peer.address()));
 
-      auto msg = (boost::format(
-                      "failed to delete peer, public key: '%s', address: '%s'")
-                  % peer.pubkey().hex() % peer.address())
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format(
+                    "failed to delete peer, public key: '%s', address: '%s'")
+                % peer.pubkey().hex() % peer.address())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::insertDomain(
@@ -333,12 +345,13 @@ namespace iroha {
       st.exchange(soci::use(domain.domainId()));
       st.exchange(soci::use(domain.defaultRole()));
 
-      auto msg = (boost::format("failed to insert domain, domain id: '%s', "
-                                "default role: '%s'")
-                  % domain.domainId() % domain.defaultRole())
-                     .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format("failed to insert domain, domain id: '%s', "
+                              "default role: '%s'")
+                % domain.domainId() % domain.defaultRole())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::updateAccount(
@@ -348,13 +361,13 @@ namespace iroha {
       st.exchange(soci::use(account.quorum()));
       st.exchange(soci::use(account.accountId()));
 
-      auto msg =
-          (boost::format(
-               "failed to update account, account id: '%s', quorum: '%s'")
-           % account.accountId() % account.quorum())
-              .str();
-
-      return executeSOCI(st, msg);
+      auto msg = [&] {
+        return (boost::format(
+                    "failed to update account, account id: '%s', quorum: '%s'")
+                % account.accountId() % account.quorum())
+            .str();
+      };
+      return execute(st, msg);
     }
 
     WsvCommandResult PostgresWsvCommand::setAccountKV(
@@ -378,13 +391,15 @@ namespace iroha {
       st.exchange(soci::use(value));
       st.exchange(soci::use(account_id));
 
-      auto msg =
-          (boost::format("failed to set account key-value, account id: '%s', "
-                         "creator account id: '%s',\n key: '%s', value: '%s'")
-           % account_id % creator_account_id % key % val)
-              .str();
+      auto msg = [&] {
+        return (boost::format(
+                    "failed to set account key-value, account id: '%s', "
+                    "creator account id: '%s',\n key: '%s', value: '%s'")
+                % account_id % creator_account_id % key % val)
+            .str();
+      };
 
-      return executeSOCI(st, msg);
+      return execute(st, msg);
     }
   }  // namespace ametsuchi
 }  // namespace iroha

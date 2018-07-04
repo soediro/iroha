@@ -27,7 +27,7 @@ namespace iroha {
     class PostgresWsvQuery : public WsvQuery {
      public:
       explicit PostgresWsvQuery(soci::session &sql);
-      PostgresWsvQuery(std::unique_ptr<soci::session> sql_ptr);
+      explicit PostgresWsvQuery(std::unique_ptr<soci::session> sql_ptr);
 
       boost::optional<std::vector<shared_model::interface::types::RoleIdType>>
       getAccountRoles(const shared_model::interface::types::AccountIdType
