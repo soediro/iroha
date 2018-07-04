@@ -27,7 +27,18 @@ namespace shared_model {
         : GetAccountDetail(std::move(o.proto_)) {}
 
     const interface::types::AccountIdType &GetAccountDetail::accountId() const {
-      return account_detail_.account_id();
+      return account_detail_.account_id().empty()
+          ? proto_->payload().meta().creator_account_id()
+          : account_detail_.account_id();
+    }
+
+    const interface::types::AccountDetailKeyType &GetAccountDetail::key()
+        const {
+      return account_detail_.key();
+    }
+
+    const interface::types::AccountIdType &GetAccountDetail::writer() const {
+      return account_detail_.writer();
     }
 
   }  // namespace proto

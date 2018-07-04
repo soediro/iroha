@@ -33,6 +33,16 @@ namespace shared_model {
        */
       virtual const types::AccountIdType &accountId() const = 0;
 
+      /**
+       * @return key from key-value storage
+       */
+      virtual const types::AccountDetailKeyType &key() const = 0;
+
+      /**
+       * @return account identifier of writer
+       */
+      virtual const types::AccountIdType &writer() const = 0;
+
       std::string toString() const override;
 
       bool operator==(const ModelType &rhs) const override;

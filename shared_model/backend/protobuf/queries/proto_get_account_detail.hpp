@@ -38,6 +38,10 @@ namespace shared_model {
 
       const interface::types::AccountIdType &accountId() const override;
 
+      const interface::types::AccountDetailKeyType &key() const override;
+
+      const interface::types::AccountIdType &writer() const override;
+
      private:
       // ------------------------------| fields |-------------------------------
 
