@@ -35,9 +35,10 @@ namespace iroha {
      */
     class PostgresBlockQuery : public BlockQuery {
      public:
-      PostgresBlockQuery(soci::session &sql, KeyValueStorage &file_store);
-      PostgresBlockQuery(std::unique_ptr<soci::session> sql_ptr,
-                         KeyValueStorage &file_store);
+      explicit PostgresBlockQuery(soci::session &sql,
+                                  KeyValueStorage &file_store);
+      explicit PostgresBlockQuery(std::unique_ptr<soci::session> sql_ptr,
+                                  KeyValueStorage &file_store);
 
       rxcpp::observable<wTransaction> getAccountTransactions(
           const shared_model::interface::types::AccountIdType &account_id)

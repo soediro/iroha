@@ -53,18 +53,6 @@ namespace iroha {
       return values;
     }
 
-    template <typename T, typename Operator>
-    std::vector<T> transform(const std::vector<soci::row> &result,
-                             Operator &&transform_func) noexcept {
-      std::vector<T> values;
-      std::transform(result.begin(),
-                     result.end(),
-                     std::back_inserter(values),
-                     transform_func);
-
-      return values;
-    }
-
     /**
      * Execute build function and return error in case it throws
      * @tparam T - result value type
