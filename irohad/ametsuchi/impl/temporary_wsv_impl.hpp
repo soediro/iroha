@@ -31,9 +31,9 @@ namespace iroha {
      public:
       TemporaryWsvImpl(std::unique_ptr<soci::session> sql);
 
-      expected::Result<void, validation::CommandNameAndError> apply(
+      expected::Result<void, validation::CommandError> apply(
           const shared_model::interface::Transaction &,
-          std::function<expected::Result<void, validation::CommandNameAndError>(
+          std::function<expected::Result<void, validation::CommandError>(
               const shared_model::interface::Transaction &, WsvQuery &)>
               function) override;
 
