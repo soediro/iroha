@@ -14,11 +14,6 @@
 #include "framework/specified_visitor.hpp"
 #include "integration/binary/launchers.hpp"
 
-using namespace boost::process;
-using namespace binary_test;
-using namespace integration_framework;
-using namespace shared_model;
-using namespace shared_model::interface;
 
 namespace shared_model {
 
@@ -44,7 +39,7 @@ namespace shared_model {
 
 namespace query_validation {
 
-  using QueryIterator = std::vector<proto::Query>::iterator;
+  using QueryIterator = std::vector<shared_model::proto::Query>::iterator;
 
   namespace internal {
 
@@ -83,7 +78,7 @@ namespace query_validation {
     template <typename Head, typename... Tail>
     inline void _validateQueries(::query_validation::QueryIterator it,
                                  ::query_validation::QueryIterator end,
-                                 IntegrationTestFramework &itf) {
+                                 integration_framework::IntegrationTestFramework &itf) {
       if (it != end) {
         itf.sendQuery(*it, checkQueryResponseType<Head>);
         _validateQueries<Tail...>(++it, end, itf);
@@ -97,7 +92,7 @@ namespace query_validation {
     inline void _validateQueries<internal::Void>(
         ::query_validation::QueryIterator it,
         ::query_validation::QueryIterator end,
-        IntegrationTestFramework &itf){};
+        integration_framework::IntegrationTestFramework &itf){};
 
   }  // namespace internal
 
@@ -116,7 +111,7 @@ namespace query_validation {
   template <typename... ExpectedResponsesTypes>
   inline void validateQueriesResponseTypes(QueryIterator it,
                                            QueryIterator end,
-                                           IntegrationTestFramework &itf) {
+                                           integration_framework::IntegrationTestFramework &itf) {
     internal::_validateQueries<ExpectedResponsesTypes..., internal::Void>(
         it, end, itf);
   }
@@ -167,7 +162,7 @@ class BinaryTestFixture : public ::testing::Test {
   void doTest(const unsigned &transactions_expected = 0,
               const unsigned &queries_expected = 0) {
     if (launcher.initialized(transactions_expected, queries_expected)) {
-      IntegrationTestFramework itf(1);
+      integration_framework::IntegrationTestFramework itf(1);
 
       itf.setInitialState(launcher.admin_key.value(), genesis());
 
@@ -176,7 +171,7 @@ class BinaryTestFixture : public ::testing::Test {
               launcher.transactions.begin()),
           launcher.transactions.end(),
           [&itf](const auto &tx) {
-            itf.sendTx(tx).checkBlock(blockWithTransactionValidation);
+            itf.sendTx(tx).checkBlock(BinaryTestFixture::blockWithTransactionValidation);
           });
 
       query_validation::validateQueriesResponseTypes<

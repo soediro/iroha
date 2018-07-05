@@ -5,7 +5,9 @@
 
 #include "integration/binary/binaries_test_fixture.hpp"
 
-using BinaryTestTypes = ::testing::Types<PythonLauncher, JavaLauncher>;
+using namespace shared_model::interface;
+
+using BinaryTestTypes = ::testing::Types<binary_test::PythonLauncher, binary_test::JavaLauncher>;
 
 TYPED_TEST_CASE(BinaryTestFixture, BinaryTestTypes);
 
