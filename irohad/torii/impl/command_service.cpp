@@ -26,9 +26,11 @@
 #include "builders/protobuf/transaction_responses/proto_transaction_status_builder.hpp"
 #include "builders/protobuf/transport_builder.hpp"
 #include "common/byteutils.hpp"
+#include "common/is_any.hpp"
 #include "common/types.hpp"
 #include "cryptography/default_hash_provider.hpp"
 #include "endpoint.pb.h"
+#include "torii/impl/timeout.hpp"
 #include "validators/default_validator.hpp"
 
 using namespace std::chrono_literals;
@@ -44,9 +46,15 @@ namespace torii {
         proposal_delay_(proposal_delay),
         start_tx_processing_duration_(1s),
         cache_(std::make_shared<CacheType>()),
+        // merge with mutex, since notifications can be made from different
+        // threads
+        responses_(tx_processor_->transactionNotifier().merge(
+            rxcpp::serialize_one_worker(
+                rxcpp::schedulers::make_current_thread()),
+            notifier_.get_observable())),
         log_(logger::log("CommandService")) {
     // Notifier for all clients
-    tx_processor_->transactionNotifier().subscribe([this](auto iroha_response) {
+    responses_.subscribe([this](auto iroha_response) {
       // Find response in cache
       auto proto_response =
           std::static_pointer_cast<shared_model::proto::TransactionResponse>(
@@ -106,7 +114,12 @@ namespace torii {
     log_->debug("Torii: adding item to cache: {}, status {} ",
                 tx_hash.hex(),
                 response.tx_status());
-    cache_->addItem(tx_hash, response);
+    // transactions can be handled from multiple threads, therefore a lock is
+    // required
+    std::lock_guard<std::mutex> lock(notifier_mutex_);
+    notifier_.get_subscriber().on_next(
+        std::make_shared<shared_model::proto::TransactionResponse>(
+            std::move(response)));
   }
 
   grpc::Status CommandService::Torii(
@@ -148,139 +161,105 @@ namespace torii {
     return grpc::Status::OK;
   }
 
-  void CommandService::StatusStream(
-      iroha::protocol::TxStatusRequest const &request,
-      grpc::ServerWriter<iroha::protocol::ToriiResponse> &response_writer) {
-    auto resp = cache_->findItem(shared_model::crypto::Hash(request.tx_hash()));
-    if (checkCacheAndSend(resp, response_writer)) {
-      return;
-    }
-    auto finished = std::make_shared<std::atomic<bool>>(false);
-    auto subscription = rxcpp::composite_subscription();
-    auto request_hash =
-        std::make_shared<shared_model::crypto::Hash>(request.tx_hash());
+  /**
+   * Statuses considered final for streaming. Observable stops value emission
+   * after receiving a value of one of the following types
+   * @tparam T concrete response type
+   */
+  template <typename T>
+  constexpr bool FinalStatusValue =
+      iroha::is_any<std::remove_const_t<std::remove_reference_t<T>>,
+                    shared_model::interface::StatelessFailedTxResponse,
+                    shared_model::interface::StatefulFailedTxResponse,
+                    shared_model::interface::CommittedTxResponse,
+                    shared_model::interface::MstExpiredResponse>::value;
 
-    /// Condition variable to ensure that current method will not return before
-    /// transaction is processed or a timeout reached. It blocks current thread
-    /// and waits for thread from subscribe() to unblock.
-    auto cv = std::make_shared<std::condition_variable>();
-
-    log_->debug("StatusStream before subscribe(), hash: {}",
-                request_hash->hex());
-
-    tx_processor_->transactionNotifier()
-        .filter([&request_hash](auto response) {
-          return response->transactionHash() == *request_hash;
+  rxcpp::observable<
+      std::shared_ptr<shared_model::interface::TransactionResponse>>
+  CommandService::StatusStream(
+      const iroha::protocol::TxStatusRequest &request) {
+    auto hash = shared_model::crypto::Hash(request.tx_hash());
+    std::shared_ptr<shared_model::interface::TransactionResponse>
+        initial_status = clone(shared_model::proto::TransactionResponse(
+            cache_->findItem(hash).value_or([&] {
+              log_->info("tx not received");
+              return shared_model::proto::TransactionStatusBuilder()
+                  .txHash(hash)
+                  .notReceived()
+                  .build()
+                  .getTransport();
+            }())));
+    return responses_.start_with(initial_status)
+        .filter([hash = std::move(hash)](auto response) {
+          return response->transactionHash() == hash;
         })
-        .subscribe(
-            subscription,
-            [&](std::shared_ptr<shared_model::interface::TransactionResponse>
-                    iroha_response) {
-              auto proto_response = std::static_pointer_cast<
-                  shared_model::proto::TransactionResponse>(iroha_response);
-
-              log_->debug("subscribe new status: {}, hash {}",
-                          proto_response->toString(),
-                          proto_response->transactionHash().hex());
-
-              iroha::protocol::ToriiResponse resp_sub =
-                  proto_response->getTransport();
-
-              if (isFinalStatus(resp_sub.tx_status())) {
-                response_writer.WriteLast(resp_sub, grpc::WriteOptions());
-                *finished = true;
-                cv->notify_one();
-              } else {
-                response_writer.Write(resp_sub);
-              }
+        .lift<std::shared_ptr<shared_model::interface::TransactionResponse>>(
+            [](rxcpp::subscriber<std::shared_ptr<
+                   shared_model::interface::TransactionResponse>> dest) {
+              return rxcpp::make_subscriber<std::shared_ptr<
+                  shared_model::interface::TransactionResponse>>(
+                  dest,
+                  [=](std::shared_ptr<
+                      shared_model::interface::TransactionResponse> response) {
+                    dest.on_next(response);
+                    iroha::visit_in_place(
+                        response->get(),
+                        [dest](const auto &resp)
+                            -> std::enable_if_t<
+                                FinalStatusValue<decltype(resp)>> {
+                          dest.on_completed();
+                        },
+                        [](const auto &resp)
+                            -> std::enable_if_t<
+                                not FinalStatusValue<decltype(resp)>>{});
+                  });
             });
-
-    std::mutex wait_subscription;
-    std::unique_lock<std::mutex> lock(wait_subscription);
-
-    log_->debug("StatusStream waiting start, hash: {}", request_hash->hex());
-
-    /// we expect that start_tx_processing_duration_ will be enough
-    /// to at least start tx processing.
-    /// Otherwise we think there is no such tx at all.
-    cv->wait_for(lock, start_tx_processing_duration_);
-
-    log_->debug("StatusStream waiting finish, hash: {}", request_hash->hex());
-
-    if (not *finished) {
-      resp = cache_->findItem(shared_model::crypto::Hash(request.tx_hash()));
-      if (not resp) {
-        log_->warn("StatusStream request processing timeout, hash: {}",
-                   request_hash->hex());
-        // TODO 05/03/2018 andrei IR-1046 Server-side shared model object
-        // factories with move semantics
-        auto resp_none = shared_model::proto::TransactionStatusBuilder()
-                             .txHash(*request_hash)
-                             .notReceived()
-                             .build();
-        response_writer.WriteLast(resp_none.getTransport(),
-                                  grpc::WriteOptions());
-      } else {
-        log_->debug(
-            "Tx processing was started but unfinished, awaiting more, hash: {}",
-            request_hash->hex());
-        /// We give it 2*proposal_delay time until timeout.
-        cv->wait_for(lock, 2 * proposal_delay_);
-
-        /// status can be in the cache if it was finalized before we subscribed
-        if (not *finished) {
-          log_->debug("Transaction {} still not finished", request_hash->hex());
-          resp =
-              cache_->findItem(shared_model::crypto::Hash(request.tx_hash()));
-          log_->debug("Status of tx {} in cache: {}",
-                      request_hash->hex(),
-                      resp->tx_status());
-        }
-      }
-    } else {
-      log_->debug("StatusStream request processed successfully, hash: {}",
-                  request_hash->hex());
-    }
-    subscription.unsubscribe();
-    log_->debug("StatusStream unsubscribed");
   }
 
   grpc::Status CommandService::StatusStream(
       grpc::ServerContext *context,
       const iroha::protocol::TxStatusRequest *request,
       grpc::ServerWriter<iroha::protocol::ToriiResponse> *response_writer) {
-    StatusStream(*request, *response_writer);
+    rxcpp::schedulers::run_loop rl;
+
+    auto main_thread =
+        rxcpp::observe_on_one_worker(rxcpp::schedulers::make_run_loop(rl));
+
+    rxcpp::composite_subscription subscription;
+
+    StatusStream(*request)
+        .map([](auto response) {
+          return std::static_pointer_cast<
+                     shared_model::proto::TransactionResponse>(response)
+              ->getTransport();
+        })
+        .lift<iroha::protocol::ToriiResponse>(
+            makeTimeout<iroha::protocol::ToriiResponse>(
+                [&](const auto &response) {
+                  return response.tx_status()
+                          == iroha::protocol::TxStatus::NOT_RECEIVED
+                      ? start_tx_processing_duration_
+                      : 2 * proposal_delay_;
+                },
+                main_thread))
+        .take_while([=](const auto &) { return not context->IsCancelled(); })
+        .subscribe(
+            subscription,
+            [&](iroha::protocol::ToriiResponse response) {
+              log_->debug("writing status");
+              response_writer->Write(response);
+            },
+            [&](std::exception_ptr ep) { log_->debug("processing timeout"); },
+            [&] { log_->info("stream done"); });
+
+    // run loop while subscription is active or there are pending events in the
+    // queue
+    while (subscription.is_subscribed() or not rl.empty()) {
+      rl.dispatch();
+    }
+
+    log_->debug("status stream done");
     return grpc::Status::OK;
   }
 
-  bool CommandService::checkCacheAndSend(
-      const boost::optional<iroha::protocol::ToriiResponse> &resp,
-      grpc::ServerWriter<iroha::protocol::ToriiResponse> &response_writer)
-      const {
-    if (resp) {
-      if (isFinalStatus(resp->tx_status())) {
-        log_->debug("Transaction {} in service cache and final",
-                    iroha::bytestringToHexstring(resp->tx_hash()));
-        response_writer.WriteLast(*resp, grpc::WriteOptions());
-        return true;
-      }
-      log_->debug("Transaction {} in service cache and not final",
-                  iroha::bytestringToHexstring(resp->tx_hash()));
-      response_writer.Write(*resp);
-    }
-    return false;
-  }
-
-  bool CommandService::isFinalStatus(
-      const iroha::protocol::TxStatus &status) const {
-    using namespace iroha::protocol;
-    std::vector<TxStatus> final_statuses = {
-        TxStatus::STATELESS_VALIDATION_FAILED,
-        TxStatus::STATEFUL_VALIDATION_FAILED,
-        TxStatus::NOT_RECEIVED,
-        TxStatus::COMMITTED};
-    return (std::find(
-               std::begin(final_statuses), std::end(final_statuses), status))
-        != std::end(final_statuses);
-  }
 }  // namespace torii

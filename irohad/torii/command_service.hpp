@@ -102,12 +102,11 @@ namespace torii {
      * the some final transaction status (which cannot change anymore)
      * @param request- TxStatusRequest object which identifies transaction
      * uniquely
-     * @param response_writer - grpc::ServerWriter which can repeatedly send
-     * transaction statuses back to the client
+     * @return observable with transaction statuses
      */
-    void StatusStream(
-        iroha::protocol::TxStatusRequest const &request,
-        grpc::ServerWriter<iroha::protocol::ToriiResponse> &response_writer);
+    rxcpp::observable<
+        std::shared_ptr<shared_model::interface::TransactionResponse>>
+    StatusStream(const iroha::protocol::TxStatusRequest &request);
 
     /**
      * StatusStream call via grpc
@@ -118,19 +117,10 @@ namespace torii {
      * transaction statuses back to the client
      * @return - grpc::Status
      */
-    virtual grpc::Status StatusStream(
-        grpc::ServerContext *context,
-        const iroha::protocol::TxStatusRequest *request,
-        grpc::ServerWriter<iroha::protocol::ToriiResponse> *response_writer)
-        override;
-
-   private:
-    bool checkCacheAndSend(
-        const boost::optional<iroha::protocol::ToriiResponse> &resp,
-        grpc::ServerWriter<iroha::protocol::ToriiResponse> &response_writer)
-        const;
-
-    bool isFinalStatus(const iroha::protocol::TxStatus &status) const;
+    grpc::Status StatusStream(grpc::ServerContext *context,
+                              const iroha::protocol::TxStatusRequest *request,
+                              grpc::ServerWriter<iroha::protocol::ToriiResponse>
+                                  *response_writer) override;
 
    private:
     using CacheType = iroha::cache::Cache<shared_model::crypto::Hash,
@@ -142,6 +132,15 @@ namespace torii {
     std::chrono::milliseconds proposal_delay_;
     std::chrono::milliseconds start_tx_processing_duration_;
     std::shared_ptr<CacheType> cache_;
+
+    std::mutex notifier_mutex_;
+    rxcpp::subjects::subject<
+        std::shared_ptr<shared_model::interface::TransactionResponse>>
+        notifier_;
+    rxcpp::observable<
+        std::shared_ptr<shared_model::interface::TransactionResponse>>
+        responses_;
+
     logger::Logger log_;
   };
 
