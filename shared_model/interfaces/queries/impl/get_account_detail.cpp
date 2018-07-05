@@ -12,8 +12,8 @@ namespace shared_model {
       return detail::PrettyStringBuilder()
           .init("GetAccountDetail")
           .append("account_id", accountId())
-          .append("key", key())
-          .append("writer", writer())
+          .append("key", key() ? *key() : "")
+          .append("writer", writer() ? *writer() : "")
           .finalize();
     }
 

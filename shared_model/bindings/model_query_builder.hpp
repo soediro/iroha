@@ -135,11 +135,14 @@ namespace shared_model {
       /**
        * Retrieves details for a given account
        * @param account_id - account to retrieve details from
-       * @param detail - key to retrieve
+       * @param key - under which keys data should be returned
+       * @param writer - from which writers details should be returned
        * @return builder with getAccountDetail query inside
        */
       ModelQueryBuilder getAccountDetail(
-          const interface::types::AccountIdType &account_id);
+          const interface::types::AccountIdType &account_id = "",
+          const interface::types::AccountDetailKeyType &key = "",
+          const interface::types::AccountIdType &writer = "");
 
       /**
        * Builds result with all appended fields
