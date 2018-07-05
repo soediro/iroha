@@ -29,7 +29,7 @@ namespace iroha {
   namespace ametsuchi {
     class TemporaryWsvImpl : public TemporaryWsv {
      public:
-      TemporaryWsvImpl(std::unique_ptr<soci::session> sql);
+      explicit TemporaryWsvImpl(std::unique_ptr<soci::session> sql);
 
       expected::Result<void, validation::CommandError> apply(
           const shared_model::interface::Transaction &,
