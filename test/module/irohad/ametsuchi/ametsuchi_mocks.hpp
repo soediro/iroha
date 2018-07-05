@@ -148,6 +148,11 @@ namespace iroha {
                                     const std::string &,
                                     const std::string &,
                                     const std::string &));
+      MOCK_METHOD4(addAssetQuantity,
+          WsvCommandResult(const std::string &,
+                           const std::string &,
+                           const std::string &,
+                           const int));
     };
 
     class MockBlockQuery : public BlockQuery {

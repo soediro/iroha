@@ -404,5 +404,76 @@ namespace iroha {
       };
       return makeCommandResult(std::move(result), message_gen);
     }
+
+    WsvCommandResult PostgresWsvCommand::addAssetQuantity(
+        const shared_model::interface::types::AccountIdType &account_id,
+        const shared_model::interface::types::AssetIdType &asset_id,
+        const std::string &amount,
+        const int precision) {
+      std::string query =
+          (boost::format(
+               // clang-format off
+          "WITH has_account AS (SELECT account_id FROM account WHERE account_id = '%s' LIMIT 1),\n"
+          "     has_asset AS (SELECT asset_id FROM asset WHERE asset_id = '%s' AND precision = %d LIMIT 1),\n"
+          "     amount AS (SELECT amount FROM account_has_asset WHERE asset_id = '%s' LIMIT 1),\n"
+          "     new_value AS (SELECT %s + \n"
+          "                    (SELECT \n"
+          "                        CASE WHEN EXISTS (SELECT amount FROM amount LIMIT 1) THEN (SELECT amount FROM amount LIMIT 1) \n"
+          "                        ELSE 0::decimal\n"
+          "                    END) AS value\n"
+          "                ),\n"
+          "     inserted AS \n"
+          "     (\n"
+          "        INSERT INTO account_has_asset(account_id, asset_id, amount) \n"
+          "        (\n"
+          "            SELECT '%s', '%s', value FROM new_value \n"
+          "        ) \n"
+          "        ON CONFLICT (account_id, asset_id) DO UPDATE SET amount = EXCLUDED.amount\n"
+          "        WHERE EXISTS (SELECT * FROM has_account LIMIT 1) AND \n"
+          "              EXISTS (SELECT * FROM has_asset LIMIT 1) AND \n"
+          "              EXISTS (SELECT value FROM new_value WHERE value < 2 ^ 253 - 1 LIMIT 1)"
+          "        RETURNING (1)\n"
+          "     )\n"
+          "SELECT CASE\n"
+          "    WHEN EXISTS (SELECT * FROM inserted LIMIT 1) THEN 0\n"
+          "    WHEN NOT EXISTS (SELECT * FROM has_account LIMIT 1) THEN 1\n"
+          "    WHEN NOT EXISTS (SELECT * FROM has_asset LIMIT 1) THEN 2\n"
+          "    WHEN NOT EXISTS (SELECT value FROM new_value WHERE value < 2 ^ 253 - 1 LIMIT 1) THEN 3\n"
+          "    ELSE 4\n"
+          "END AS result;")
+           // clang-format on
+           % account_id % asset_id % precision % asset_id % amount % account_id
+           % asset_id)
+              .str();
+
+      auto result = execute_(query);
+
+      return result.match(
+          [](expected::Value<pqxx::result> error_code) -> WsvCommandResult {
+            int code = error_code.value[0].at("result").template as<int>();
+            if (code == 0) {
+              return {};
+            }
+            std::string error_msg;
+            switch (code) {
+              case 1:
+                error_msg = "Account does not exist";
+                break;
+              case 2:
+                error_msg = "Asset with given precision does not exist";
+                break;
+              case 3:
+                error_msg = "Summation overflows uint256.";
+                break;
+              default:
+                error_msg = "Unexpected error. Something went wrong!";
+                break;
+            }
+            return expected::makeError(error_msg);
+          },
+          [](const auto &e) -> WsvCommandResult {
+            return expected::makeError(e.error);
+          });
+    }
   }  // namespace ametsuchi
 }  // namespace iroha

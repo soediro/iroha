@@ -232,18 +232,12 @@ class AddAssetQuantityTest : public CommandValidateExecuteTest {
  * @then executor will be passed
  */
 TEST_F(AddAssetQuantityTest, ValidWhenNewWallet) {
-  EXPECT_CALL(*wsv_query, getAccountAsset(add_asset_quantity->accountId(), _))
-      .WillOnce(Return(boost::none));
-  EXPECT_CALL(*wsv_query, getAsset(add_asset_quantity->assetId()))
-      .WillOnce(Return(asset));
-  EXPECT_CALL(*wsv_query, getAccount(add_asset_quantity->accountId()))
-      .WillOnce(Return(account));
-  EXPECT_CALL(*wsv_command, upsertAccountAsset(_))
-      .WillOnce(Return(WsvCommandResult()));
   EXPECT_CALL(*wsv_query, getAccountRoles(creator->accountId()))
       .WillOnce(Return(admin_roles));
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
       .WillOnce(Return(role_permissions));
+  EXPECT_CALL(*wsv_command, addAssetQuantity(_, _, _, _))
+      .WillOnce(Return(WsvCommandResult()));
 
   ASSERT_TRUE(val(validateAndExecute(command)));
 }
@@ -254,14 +248,7 @@ TEST_F(AddAssetQuantityTest, ValidWhenNewWallet) {
  * @then executor will be passed
  */
 TEST_F(AddAssetQuantityTest, ValidWhenExistingWallet) {
-  EXPECT_CALL(*wsv_query,
-              getAccountAsset(add_asset_quantity->accountId(),
-                              add_asset_quantity->assetId()))
-      .WillOnce(Return(wallet));
-  EXPECT_CALL(*wsv_query, getAsset(kAssetId)).WillOnce(Return(asset));
-  EXPECT_CALL(*wsv_query, getAccount(add_asset_quantity->accountId()))
-      .WillOnce(Return(account));
-  EXPECT_CALL(*wsv_command, upsertAccountAsset(_))
+  EXPECT_CALL(*wsv_command, addAssetQuantity(_, _, _, _))
       .WillOnce(Return(WsvCommandResult()));
   EXPECT_CALL(*wsv_query, getAccountRoles(add_asset_quantity->accountId()))
       .WillOnce(Return(admin_roles));
@@ -298,7 +285,8 @@ TEST_F(AddAssetQuantityTest, InvalidWhenWrongPrecision) {
       .WillOnce(Return(admin_roles));
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
       .WillOnce(Return(role_permissions));
-  EXPECT_CALL(*wsv_query, getAsset(kAssetId)).WillOnce(Return(asset));
+  EXPECT_CALL(*wsv_command, addAssetQuantity(_, _, _, _))
+      .WillOnce(Return(expected::makeError("Asset with given precision does not exist")));
   ASSERT_TRUE(err(validateAndExecute(command)));
 }
 
@@ -313,9 +301,8 @@ TEST_F(AddAssetQuantityTest, InvalidWhenNoAccount) {
       .WillOnce(Return(admin_roles));
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
       .WillOnce(Return(role_permissions));
-  EXPECT_CALL(*wsv_query, getAsset(kAssetId)).WillOnce(Return(asset));
-  EXPECT_CALL(*wsv_query, getAccount(add_asset_quantity->accountId()))
-      .WillOnce(Return(boost::none));
+  EXPECT_CALL(*wsv_command, addAssetQuantity(_, _, _, _))
+      .WillOnce(Return(expected::makeError("Account does not exist")));
 
   ASSERT_TRUE(err(validateAndExecute(command)));
 }
@@ -338,8 +325,8 @@ TEST_F(AddAssetQuantityTest, InvalidWhenNoAsset) {
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
       .WillOnce(Return(role_permissions));
 
-  EXPECT_CALL(*wsv_query, getAsset(add_asset_quantity->assetId()))
-      .WillOnce(Return(boost::none));
+  EXPECT_CALL(*wsv_command, addAssetQuantity(_, _, _, _))
+      .WillOnce(Return(expected::makeError("Asset with given precision does not exist")));
 
   ASSERT_TRUE(err(validateAndExecute(command)));
 }
@@ -356,17 +343,12 @@ TEST_F(AddAssetQuantityTest, InvalidWhenAssetAdditionFails) {
   add_asset_quantity =
       getConcreteCommand<shared_model::interface::AddAssetQuantity>(command);
 
-  EXPECT_CALL(*wsv_query,
-              getAccountAsset(add_asset_quantity->accountId(),
-                              add_asset_quantity->assetId()))
-      .WillOnce(Return(wallet));
-  EXPECT_CALL(*wsv_query, getAsset(kAssetId)).WillOnce(Return(asset));
-  EXPECT_CALL(*wsv_query, getAccount(add_asset_quantity->accountId()))
-      .WillOnce(Return(account));
   EXPECT_CALL(*wsv_query, getAccountRoles(add_asset_quantity->accountId()))
       .WillOnce(Return(admin_roles));
   EXPECT_CALL(*wsv_query, getRolePermissions(kAdminRole))
       .WillOnce(Return(role_permissions));
+  EXPECT_CALL(*wsv_command, addAssetQuantity(_, _, _, _))
+      .WillOnce(Return(expected::makeError("Summation overflows uint256")));
 
   ASSERT_TRUE(err(validateAndExecute(command)));
 }
