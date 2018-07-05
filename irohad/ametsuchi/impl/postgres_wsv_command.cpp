@@ -428,11 +428,11 @@ namespace iroha {
                   INSERT INTO account_has_asset(account_id, asset_id, amount)
                   (
                       SELECT '%s', '%s', value FROM new_value
-                  )
-                  ON CONFLICT (account_id, asset_id) DO UPDATE SET amount = EXCLUDED.amount
-                  WHERE EXISTS (SELECT * FROM has_account LIMIT 1) AND
+                      WHERE EXISTS (SELECT * FROM has_account LIMIT 1) AND
                         EXISTS (SELECT * FROM has_asset LIMIT 1) AND
                         EXISTS (SELECT value FROM new_value WHERE value < 2 ^ 253 - 1 LIMIT 1)
+                  )
+                  ON CONFLICT (account_id, asset_id) DO UPDATE SET amount = EXCLUDED.amount
                   RETURNING (1)
                )
           SELECT CASE

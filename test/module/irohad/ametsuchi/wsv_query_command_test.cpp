@@ -20,6 +20,7 @@
 #include "framework/result_fixture.hpp"
 #include "module/irohad/ametsuchi/ametsuchi_fixture.hpp"
 #include "module/shared_model/builders/protobuf/test_account_builder.hpp"
+#include "module/shared_model/builders/protobuf/test_asset_builder.hpp"
 #include "module/shared_model/builders/protobuf/test_domain_builder.hpp"
 #include "module/shared_model/builders/protobuf/test_peer_builder.hpp"
 
@@ -480,6 +481,100 @@ namespace iroha {
      */
     TEST_F(DatabaseInvalidTest, QueryInvalidWhenDatabaseInvalid) {
       EXPECT_FALSE(query->getAccount("some account"));
+    }
+
+    class AddAccountAssetTest : public WsvQueryCommandTest {
+      void SetUp() override {
+        WsvQueryCommandTest::SetUp();
+
+        ASSERT_TRUE(val(command->insertRole(role)));
+        ASSERT_TRUE(val(command->insertDomain(*domain)));
+        ASSERT_TRUE(val(command->insertAccount(*account)));
+      }
+
+     public:
+      void addAsset() {
+        auto asset = clone(TestAccountAssetBuilder()
+                               .domainId(domain->domainId())
+                               .assetId(asset_id)
+                               .precision(1)
+                               .build());
+
+        ASSERT_TRUE(val(command->insertAsset(*asset)));
+      }
+
+      shared_model::interface::types::AssetIdType asset_id =
+          "coin#" + domain->domainId();
+    };
+
+    /**
+     * @given WSV command
+     * @when trying to add account asset
+     * @then account asset is successfully added
+     */
+    TEST_F(AddAccountAssetTest, ValidAddAccountAssetTest) {
+      addAsset();
+      ASSERT_TRUE(val(
+          command->addAssetQuantity(account->accountId(), asset_id, "1", 1)));
+      auto account_asset =
+          query->getAccountAsset(account->accountId(), asset_id);
+      ASSERT_TRUE(account_asset);
+      ASSERT_EQ("1", account_asset.get()->balance().toStringRepr());
+      ASSERT_TRUE(val(
+          command->addAssetQuantity(account->accountId(), asset_id, "1", 1)));
+      account_asset =
+          query->getAccountAsset(account->accountId(), asset_id);
+      ASSERT_TRUE(account_asset);
+      ASSERT_EQ("2", account_asset.get()->balance().toStringRepr());
+    }
+
+    /**
+     * @given WSV command
+     * @when trying to add account asset with non-existing asset
+     * @then account asset fails to added
+     */
+    TEST_F(AddAccountAssetTest, AddAccountAssetTestInvalidAsset) {
+      ASSERT_FALSE(val(
+          command->addAssetQuantity(account->accountId(), asset_id, "1", 1)));
+    }
+
+    /**
+     * @given WSV command
+     * @when trying to add account asset with non-existing account
+     * @then account asset fails to added
+     */
+    TEST_F(AddAccountAssetTest, AddAccountAssetTestInvalidAccount) {
+      addAsset();
+      ASSERT_FALSE(
+          val(command->addAssetQuantity("some@domain", asset_id, "1", 1)));
+    }
+
+    /**
+     * @given WSV command
+     * @when trying to add account asset with wrong precision
+     * @then account asset fails to added
+     */
+    TEST_F(AddAccountAssetTest, AddAccountAssetTestInvalidPrecision) {
+      addAsset();
+      ASSERT_FALSE(val(
+          command->addAssetQuantity(account->accountId(), asset_id, "1", 5)));
+    }
+
+    /**
+     * @given WSV command
+     * @when trying to add account asset that overflows
+     * @then account asset fails to added
+     */
+    TEST_F(AddAccountAssetTest, AddAccountAssetTestUint256Overflow) {
+      std::string uint256_halfmax =
+          "72370055773322622139731865630429942408293740416025352524660990004945"
+          "7060"
+          "2495.0";  // 2**252 - 1
+      addAsset();
+      ASSERT_TRUE(val(command->addAssetQuantity(
+          account->accountId(), asset_id, uint256_halfmax, 1)));
+      ASSERT_FALSE(val(command->addAssetQuantity(
+          account->accountId(), asset_id, uint256_halfmax, 1)));
     }
   }  // namespace ametsuchi
 }  // namespace iroha
