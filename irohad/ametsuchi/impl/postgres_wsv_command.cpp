@@ -412,36 +412,38 @@ namespace iroha {
         const int precision) {
       std::string query =
           (boost::format(
-               // clang-format off
-          "WITH has_account AS (SELECT account_id FROM account WHERE account_id = '%s' LIMIT 1),\n"
-          "     has_asset AS (SELECT asset_id FROM asset WHERE asset_id = '%s' AND precision = %d LIMIT 1),\n"
-          "     amount AS (SELECT amount FROM account_has_asset WHERE asset_id = '%s' LIMIT 1),\n"
-          "     new_value AS (SELECT %s + \n"
-          "                    (SELECT \n"
-          "                        CASE WHEN EXISTS (SELECT amount FROM amount LIMIT 1) THEN (SELECT amount FROM amount LIMIT 1) \n"
-          "                        ELSE 0::decimal\n"
-          "                    END) AS value\n"
-          "                ),\n"
-          "     inserted AS \n"
-          "     (\n"
-          "        INSERT INTO account_has_asset(account_id, asset_id, amount) \n"
-          "        (\n"
-          "            SELECT '%s', '%s', value FROM new_value \n"
-          "        ) \n"
-          "        ON CONFLICT (account_id, asset_id) DO UPDATE SET amount = EXCLUDED.amount\n"
-          "        WHERE EXISTS (SELECT * FROM has_account LIMIT 1) AND \n"
-          "              EXISTS (SELECT * FROM has_asset LIMIT 1) AND \n"
-          "              EXISTS (SELECT value FROM new_value WHERE value < 2 ^ 253 - 1 LIMIT 1)"
-          "        RETURNING (1)\n"
-          "     )\n"
-          "SELECT CASE\n"
-          "    WHEN EXISTS (SELECT * FROM inserted LIMIT 1) THEN 0\n"
-          "    WHEN NOT EXISTS (SELECT * FROM has_account LIMIT 1) THEN 1\n"
-          "    WHEN NOT EXISTS (SELECT * FROM has_asset LIMIT 1) THEN 2\n"
-          "    WHEN NOT EXISTS (SELECT value FROM new_value WHERE value < 2 ^ 253 - 1 LIMIT 1) THEN 3\n"
-          "    ELSE 4\n"
-          "END AS result;")
+              // clang-format off
+              R"(
+          WITH has_account AS (SELECT account_id FROM account WHERE account_id = '%s' LIMIT 1),
+               has_asset AS (SELECT asset_id FROM asset WHERE asset_id = '%s' AND precision = %d LIMIT 1),
+               amount AS (SELECT amount FROM account_has_asset WHERE asset_id = '%s' LIMIT 1),
+               new_value AS (SELECT %s +
+                              (SELECT
+                                  CASE WHEN EXISTS (SELECT amount FROM amount LIMIT 1) THEN (SELECT amount FROM amount LIMIT 1)
+                                  ELSE 0::decimal
+                              END) AS value
+                          ),
+               inserted AS
+               (
+                  INSERT INTO account_has_asset(account_id, asset_id, amount)
+                  (
+                      SELECT '%s', '%s', value FROM new_value
+                  )
+                  ON CONFLICT (account_id, asset_id) DO UPDATE SET amount = EXCLUDED.amount
+                  WHERE EXISTS (SELECT * FROM has_account LIMIT 1) AND
+                        EXISTS (SELECT * FROM has_asset LIMIT 1) AND
+                        EXISTS (SELECT value FROM new_value WHERE value < 2 ^ 253 - 1 LIMIT 1)
+                  RETURNING (1)
+               )
+          SELECT CASE
+              WHEN EXISTS (SELECT * FROM inserted LIMIT 1) THEN 0
+              WHEN NOT EXISTS (SELECT * FROM has_account LIMIT 1) THEN 1
+              WHEN NOT EXISTS (SELECT * FROM has_asset LIMIT 1) THEN 2
+              WHEN NOT EXISTS (SELECT value FROM new_value WHERE value < 2 ^ 253 - 1 LIMIT 1) THEN 3
+              ELSE 4
+          END AS result;)"
            // clang-format on
+          )
            % account_id % asset_id % precision % asset_id % amount % account_id
            % asset_id)
               .str();
