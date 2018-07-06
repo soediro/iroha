@@ -26,7 +26,7 @@ def genesis_tx():
         .createAccount('alice', 'test', alice['key'].publicKey()) \
         .createAccount('bob', 'test', bob['key'].publicKey()) \
         .createAsset('coin', 'test', 2) \
-        .addAssetQuantity(admin['id'], 'coin#test', '100.00') \
+        .addAssetQuantity('coin#test', '100.00') \
         .transferAsset(admin['id'], alice['id'], 'coin#test', 'init top up', '90.00') \
         .appendRole(admin['id'], 'admin_role') \
         .build()

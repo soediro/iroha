@@ -50,7 +50,7 @@ def alice_action_2_tx():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(alice['id']) \
-        .addAssetQuantity(alice['id'], 'coin#first', '600.30') \
+        .addAssetQuantity('coin#first', '600.30') \
         .build()
     alice_tx2_hash_blob = tx.hash().blob()
     return iroha.ModelProtoTransaction(tx) \

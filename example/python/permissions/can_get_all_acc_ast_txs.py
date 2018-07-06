@@ -26,7 +26,7 @@ def genesis_tx():
         .createAccount('admin', 'first', admin['key'].publicKey()) \
         .createAccount('alice', 'second', alice['key'].publicKey()) \
         .createAsset('coin', 'first', 2) \
-        .addAssetQuantity(admin['id'], 'coin#first', '300.00') \
+        .addAssetQuantity('coin#first', '300.00') \
         .transferAsset(admin['id'], alice['id'], 'coin#first', 'top up', '200.00') \
         .build()
     return iroha.ModelProtoTransaction(tx) \

@@ -32,7 +32,7 @@ def add_asset_tx():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
         .creatorAccountId(alice['id']) \
-        .addAssetQuantity(alice['id'], 'coin#test', '5000.99') \
+        .addAssetQuantity('coin#test', '5000.99') \
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()
