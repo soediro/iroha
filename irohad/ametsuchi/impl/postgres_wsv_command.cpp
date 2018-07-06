@@ -97,7 +97,7 @@ namespace iroha {
       auto msg = [&] {
         const auto &str =
             shared_model::proto::permissions::toString(permissions);
-        std::string perm_debug_str = std::acumulate(
+        std::string perm_debug_str = std::accumulate(
             str.begin(),
             str.end(),
             std::string(),
@@ -387,12 +387,15 @@ namespace iroha {
              "CASE WHEN data ?:creator_account_id THEN data ELSE "
              "jsonb_set(data, :json, :empty_json) END, "
              " :filled_json, :val) WHERE account_id=:account_id";
+      std::string json = "{" + creator_account_id + "}";
+      std::string empty_json = "{}";
+      std::string filled_json = "{" + creator_account_id + ", " + key + "}";
+      std::string value = "\"" + val + "\"";
       st.exchange(soci::use(creator_account_id));
-      st.exchange(soci::use(std::string("{" + creator_account_id + "}")));
-      st.exchange(soci::use(std::string("{}")));
-      st.exchange(
-          soci::use(std::string("{" + creator_account_id + ", " + key + "}")));
-      st.exchange(soci::use(std::string("\"" + val + "\"")));
+      st.exchange(soci::use(json));
+      st.exchange(soci::use(empty_json));
+      st.exchange(soci::use(filled_json));
+      st.exchange(soci::use(value));
       st.exchange(soci::use(account_id));
 
       auto msg = [&] {
