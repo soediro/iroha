@@ -17,22 +17,40 @@
 
 #include "ametsuchi/impl/postgres_ordering_service_persistent_state.hpp"
 
+#include <soci/postgresql/soci-postgresql.h>
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
-#include <soci/postgresql/soci-postgresql.h>
 
 #include "common/types.hpp"
 
 namespace iroha {
   namespace ametsuchi {
 
+    bool PostgresOrderingServicePersistentState::execute_(std::string query) {
+      try {
+        *sql_ << query;
+      } catch (std::exception &e) {
+        log_->error("Failed to execute query: " + query
+                    + ". Reason: " + e.what());
+        return false;
+      }
+      return true;
+    }
+
     expected::Result<std::shared_ptr<PostgresOrderingServicePersistentState>,
                      std::string>
     PostgresOrderingServicePersistentState::create(
         const std::string &postgres_options) {
-      auto sql =
-          std::make_unique<soci::session>(soci::postgresql, postgres_options);
+      std::unique_ptr<soci::session> sql;
+      try {
+        sql =
+            std::make_unique<soci::session>(soci::postgresql, postgres_options);
 
+      } catch (std::exception &e) {
+        return expected::makeError(
+            (boost::format("Connection to PostgreSQL broken: %s") % e.what())
+                .str());
+      }
       expected::Result<std::shared_ptr<PostgresOrderingServicePersistentState>,
                        std::string>
           storage;
@@ -49,30 +67,24 @@ namespace iroha {
           log_(logger::log("PostgresOrderingServicePersistentState")) {}
 
     bool PostgresOrderingServicePersistentState::initStorage() {
-      try {
-        *sql_ << "CREATE TABLE IF NOT EXISTS ordering_service_state "
-            "(proposal_height bigserial)";
-        *sql_ << "INSERT INTO ordering_service_state VALUES (2)";
-      } catch (std::exception &e) {
-        return false;
-      }
-      return true;
+      return execute_(
+                 "CREATE TABLE IF NOT EXISTS ordering_service_state "
+                 "(proposal_height bigserial)")
+          && execute_("INSERT INTO ordering_service_state VALUES (2)");
     }
 
     bool PostgresOrderingServicePersistentState::dropStorgage() {
       log_->info("Drop storage");
-      *sql_ << "DROP TABLE IF EXISTS ordering_service_state";
-      return true;
+      return execute_("DROP TABLE IF EXISTS ordering_service_state");
     }
 
     bool PostgresOrderingServicePersistentState::saveProposalHeight(
         size_t height) {
       log_->info("Save proposal_height in ordering_service_state "
                  + std::to_string(height));
-      *sql_ << "DELETE FROM ordering_service_state";
-      *sql_ << "INSERT INTO ordering_service_state VALUES (:height)",
-          soci::use(height);
-      return true;
+      return execute_("DELETE FROM ordering_service_state")
+          && execute_("INSERT INTO ordering_service_state VALUES ("
+                      + std::to_string(height) + ")");
     }
 
     boost::optional<size_t>

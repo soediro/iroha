@@ -82,6 +82,8 @@ namespace iroha {
       std::unique_ptr<soci::session> sql_;
 
       logger::Logger log_;
+
+      bool execute_(std::string query);
     };
   }  // namespace ametsuchi
 }  // namespace iroha

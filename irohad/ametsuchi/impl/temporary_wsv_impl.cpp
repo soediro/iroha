@@ -63,33 +63,34 @@ namespace iroha {
                 }));
       };
 
-      *sql_ <<"SAVEPOINT savepoint_";
+      *sql_ << "SAVEPOINT savepoint_";
 
-      return apply_function(tx, *wsv_) | [this, &execute_command,
-                 &tx]()-> expected::Result<void, validation::CommandError> {
+      return apply_function(tx, *wsv_) |
+                 [this,
+                  &execute_command,
+                  &tx]() -> expected::Result<void, validation::CommandError> {
         // check transaction's commands validity
         const auto &commands = tx.commands();
         validation::CommandError cmd_error;
         for (size_t i = 0; i < commands.size(); ++i) {
           // in case of failed command, rollback and return
-          auto cmd_is_valid = execute_command(commands[i], i)
-                      .match(
-                          [](expected::Value<void> &) { return true; },
-                          [&cmd_error](
-                              expected::Error<validation::CommandError>
-                                  &error) {
-                            cmd_error = error.error;
-                            return false;
-                          });
+          auto cmd_is_valid =
+              execute_command(commands[i], i)
+                  .match([](expected::Value<void> &) { return true; },
+                         [&cmd_error](
+                             expected::Error<validation::CommandError> &error) {
+                           cmd_error = std::move(error.error);
+                           return false;
+                         });
           if (not cmd_is_valid) {
-            *sql_ <<"ROLLBACK TO SAVEPOINT savepoint_";
+            *sql_ << "ROLLBACK TO SAVEPOINT savepoint_";
             return expected::makeError(cmd_error);
           }
         }
         // success
-        *sql_ <<"RELEASE SAVEPOINT savepoint_";
+        *sql_ << "RELEASE SAVEPOINT savepoint_";
 
-      return {};
+        return {};
       };
     }
 
