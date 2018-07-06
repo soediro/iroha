@@ -11,6 +11,7 @@ alice = commons.new_user('alice@test')
 bob = commons.new_user('bob@test')
 
 
+@commons.hex
 def genesis_tx():
     test_permissions = iroha.RolePermissionSet(
         [iroha.Role_kAppendRole, iroha.Role_kAddPeer]
@@ -34,6 +35,7 @@ def genesis_tx():
         .signAndAddSignature(admin['key']).finish()
 
 
+@commons.hex
 def append_role_tx():
     # Note that you can append only that role that has
     # lesser or the same set of permissions as transaction creator.
@@ -44,8 +46,3 @@ def append_role_tx():
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()
-
-
-print(admin['key'].privateKey().hex())
-print(genesis_tx().hex())
-print(append_role_tx().hex())

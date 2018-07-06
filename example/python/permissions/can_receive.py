@@ -10,6 +10,8 @@ admin = commons.new_user('admin@test')
 alice = commons.new_user('alice@test')
 bob = commons.new_user('bob@test')
 
+
+@commons.hex
 def genesis_tx():
     test_permissions = iroha.RolePermissionSet([
         iroha.Role_kReceive,
@@ -34,6 +36,7 @@ def genesis_tx():
         .signAndAddSignature(admin['key']).finish()
 
 
+@commons.hex
 def transfer_asset_tx():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
@@ -42,8 +45,3 @@ def transfer_asset_tx():
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()
-
-
-print(admin['key'].privateKey().hex())
-print(genesis_tx().hex())
-print(transfer_asset_tx().hex())

@@ -5,6 +5,8 @@
 
 #include "integration/binary/launchers.hpp"
 
+#include <string>
+
 #include <gtest/gtest.h>
 #include "bindings/model_crypto.hpp"
 #include "common/byteutils.hpp"
@@ -34,21 +36,36 @@ namespace binary_test {
   void Launcher::readBinaries(ipstream &stream) {
     transactions.clear();
     queries.clear();
-    std::string line;
-    bool first_line(true);
-    while (stream and std::getline(stream, line) and not line.empty()) {
-      if (auto byte_string = iroha::hexstringToBytestring(line)) {
-        iroha::protocol::Transaction proto_tx;
-        iroha::protocol::Query proto_query;
-        if (first_line) {
-          first_line = false;
-          admin_key =
-              shared_model::bindings::ModelCrypto().fromPrivateKey(line);
-        } else if (proto_tx.ParseFromString(*byte_string)) {
-          transactions.emplace_back(std::move(proto_tx));
-        } else if (proto_query.ParseFromString(*byte_string)) {
-          queries.emplace_back(std::move(proto_query));
-        }
+    std::string packed_line;
+    std::string raw_payload;
+    while (stream and std::getline(stream, packed_line)
+           and packed_line.size() > 1) {
+      raw_payload = packed_line.substr(1);
+      if (auto byte_string = iroha::hexstringToBytestring(raw_payload)) {
+        auto binary_type = packed_line.at(0);
+        switch (binary_type) {
+          case 'K': {
+            if (not admin_key) {
+              admin_key = shared_model::bindings::ModelCrypto().fromPrivateKey(
+                  raw_payload);
+            }
+            break;
+          }
+          case 'T': {
+            iroha::protocol::Transaction proto_tx;
+            if (proto_tx.ParseFromString(*byte_string)) {
+              transactions.emplace_back(std::move(proto_tx));
+            }
+            break;
+          }
+          case 'Q': {
+            iroha::protocol::Query proto_query;
+            if (proto_query.ParseFromString(*byte_string)) {
+              queries.emplace_back(std::move(proto_query));
+            }
+            break;
+          }
+        }  // switch (binary_type)
       }
     }
   }

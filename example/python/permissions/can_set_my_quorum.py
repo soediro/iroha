@@ -11,6 +11,7 @@ alice = commons.new_user('alice@test')
 bob = commons.new_user('bob@test')
 
 
+@commons.hex
 def genesis_tx():
     test_permissions = iroha.RolePermissionSet([
         iroha.Role_kSetMyQuorum,
@@ -32,6 +33,7 @@ def genesis_tx():
         .signAndAddSignature(admin['key']).finish()
 
 
+@commons.hex
 def grant_can_set_my_quorum_tx():
     extra_key = iroha.ModelCrypto().generateKeypair()
     tx = iroha.ModelTransactionBuilder() \
@@ -44,6 +46,7 @@ def grant_can_set_my_quorum_tx():
         .signAndAddSignature(alice['key']).finish()
 
 
+@commons.hex
 def set_quorum_tx():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
@@ -52,9 +55,3 @@ def set_quorum_tx():
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(bob['key']).finish()
-
-
-print(admin['key'].privateKey().hex())
-print(genesis_tx().hex())
-print(grant_can_set_my_quorum_tx().hex())
-print(set_quorum_tx().hex())

@@ -9,6 +9,8 @@ import commons
 admin = commons.new_user('admin@test')
 alice = commons.new_user('alice@test')
 
+
+@commons.hex
 def genesis_tx():
     test_permissions = iroha.RolePermissionSet([iroha.Role_kGetDomainAccAst])
     tx = iroha.ModelTransactionBuilder() \
@@ -25,6 +27,7 @@ def genesis_tx():
         .signAndAddSignature(admin['key']).finish()
 
 
+@commons.hex
 def account_assets_query():
     tx = iroha.ModelQueryBuilder() \
         .createdTime(commons.now()) \
@@ -34,9 +37,3 @@ def account_assets_query():
         .build()
     return iroha.ModelProtoQuery(tx) \
         .signAndAddSignature(alice['key']).finish()
-
-
-print(admin['key'].privateKey().hex())
-print(genesis_tx().hex())
-print(account_assets_query().hex())
-

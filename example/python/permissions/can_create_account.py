@@ -11,6 +11,7 @@ alice = commons.new_user('alice@test')
 bob = commons.new_user('bob@test')
 
 
+@commons.hex
 def genesis_tx():
     test_permissions = iroha.RolePermissionSet(
         [iroha.Role_kCreateAccount]
@@ -30,6 +31,7 @@ def genesis_tx():
         .signAndAddSignature(admin['key']).finish()
 
 
+@commons.hex
 def create_account_tx():
     tx = iroha.ModelTransactionBuilder() \
         .createdTime(commons.now()) \
@@ -38,8 +40,3 @@ def create_account_tx():
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()
-
-
-print(admin['key'].privateKey().hex())
-print(genesis_tx().hex())
-print(create_account_tx().hex())

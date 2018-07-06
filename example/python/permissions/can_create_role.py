@@ -10,6 +10,7 @@ admin = commons.new_user('admin@test')
 alice = commons.new_user('alice@test')
 
 
+@commons.hex
 def genesis_tx():
     test_permissions = iroha.RolePermissionSet(
         [iroha.Role_kCreateRole, iroha.Role_kCreateDomain]
@@ -28,6 +29,8 @@ def genesis_tx():
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(admin['key']).finish()
 
+
+@commons.hex
 def create_role_tx():
     # You can pick only those permissions that
     # already belong to account of transaction creator.
@@ -39,8 +42,3 @@ def create_role_tx():
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()
-
-
-print(admin['key'].privateKey().hex())
-print(genesis_tx().hex())
-print(create_role_tx().hex())

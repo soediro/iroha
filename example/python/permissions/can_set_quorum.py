@@ -10,6 +10,7 @@ admin = commons.new_user('admin@test')
 alice = commons.new_user('alice@test')
 
 
+@commons.hex
 def genesis_tx():
     test_permissions = iroha.RolePermissionSet([iroha.Role_kSetQuorum])
     extra_key = iroha.ModelCrypto().generateKeypair()
@@ -29,6 +30,7 @@ def genesis_tx():
         .signAndAddSignature(admin['key']).finish()
 
 
+@commons.hex
 def set_quorum_tx():
     # Quourum cannot be greater than amount of keys linked to an account
     tx = iroha.ModelTransactionBuilder() \
@@ -38,8 +40,3 @@ def set_quorum_tx():
         .build()
     return iroha.ModelProtoTransaction(tx) \
         .signAndAddSignature(alice['key']).finish()
-
-
-print(admin['key'].privateKey().hex())
-print(genesis_tx().hex())
-print(set_quorum_tx().hex())
