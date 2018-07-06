@@ -207,7 +207,6 @@ DROP TABLE IF EXISTS index_by_id_height_asset;
       for (size_t i = 0; i != pool_size; i++) {
         soci::session &session = pool->at(i);
         session.open(soci::postgresql, options_str);
-        std::cout << options_str << std::endl;
       }
       return expected::makeValue(pool);
     };

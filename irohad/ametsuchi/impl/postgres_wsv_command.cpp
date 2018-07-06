@@ -97,11 +97,11 @@ namespace iroha {
       auto msg = [&] {
         const auto &str =
             shared_model::proto::permissions::toString(permissions);
-        std::string perm_debug_str;
-        std::for_each(
-            str.begin(), str.end(), [&perm_debug_str](const auto &elem) {
-              perm_debug_str += elem + " ";
-            });
+        std::string perm_debug_str = std::acumulate(
+            str.begin(),
+            str.end(),
+            std::string(),
+            [](auto acc, const auto &elem) { return acc + " " + elem; });
         return (boost::format("failed to insert role permissions, role "
                               "id: '%s', permissions: [%s]")
                 % role_id % perm_debug_str)
