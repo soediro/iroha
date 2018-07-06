@@ -42,7 +42,8 @@ namespace binary_test {
         iroha::protocol::Query proto_query;
         if (first_line) {
           first_line = false;
-          admin_key = shared_model::bindings::ModelCrypto().fromPrivateKey(line);
+          admin_key =
+              shared_model::bindings::ModelCrypto().fromPrivateKey(line);
         } else if (proto_tx.ParseFromString(*byte_string)) {
           transactions.emplace_back(std::move(proto_tx));
         } else if (proto_query.ParseFromString(*byte_string)) {
@@ -68,7 +69,8 @@ namespace binary_test {
 
   std::string PythonLauncher::launchCommand(const std::string &example) {
     std::stringstream s;
-    // TODO, igor-egorov, 2018-06-30, IR-1488, avoid bash and use boost::filesystem
+    // TODO, igor-egorov, 2018-06-30, IR-1488, avoid bash and use
+    // boost::filesystem
     s << "bash -c \"${PYTHON_INTERPRETER} "
          "${ROOT_DIR}/example/python/permissions/"
       << example << ".py\"";
